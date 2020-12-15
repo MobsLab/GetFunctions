@@ -28,6 +28,9 @@
 %     featuresNREM{10} = BurstDeltaEpoch_3_700; %N3etN4
 %     featuresNREM{11} = BurstDeltaEpoch_2_1000; %N3etN4
 %     featuresNREM{12} = BurstDeltaEpoch_3_1000; %N3etN4
+%
+% UPDATES:
+%   2020-12-14 by SL: fixed use of burst 3 vs 2 delta condition
 
 function [Epoch, NameEpoch] = SubstagesScoring(featuresNREM, NoiseEpoch, varargin)
 
@@ -99,7 +102,7 @@ if RemoveSI
     SI = sleep-dropShortIntervals(sleep,15E4);
     SI = mergeCloseIntervals(SI,10);
     SI = CleanUpEpoch(SI);
-    sleep = dropShortIntervals(sleep,15E4);% 15s
+    sleep = dropShortIntervals(sleep,15E4); % 15s
 else
     sleep = dropShortIntervals(sleep,2E4);
     SI = intervalSet([],[]);
@@ -132,20 +135,18 @@ WAKEnoise = dropShortIntervals(WAKEnoise,t_dropEp*1E4);
 WAKEnoise = CleanUpEpoch(WAKEnoise);
 
 % N3
-% 29-08-2019 This needed correcting, the condition is backward --> we are
-% using two not three deltas to define a burst
 
-if BurstIs3
-    disp('following option is ON : Burst is defined as at least 3 delta')
-    N3 = and(featuresNREM{4}, SWS); 
+if ~BurstIs3
+    disp('Following option is ON : Burst is defined as at least 2 delta')
+    N3 = and(featuresNREM{4}, SWS);  % 2 deltas with thresh @ 700
     if newBurstThresh
-        N3 = and(featuresNREM{11}, SWS);
+        N3 = and(featuresNREM{11}, SWS); % 2 deltas with thresh @ 1000
     end
 else
-    disp('following option is OFF : Burst is defined as at least 3 delta')
-    N3 = and(featuresNREM{10},SWS);
+    disp('Following option is OFF : Burst is defined as at least 3 delta')
+    N3 = and(featuresNREM{10},SWS);  % 3 deltas with thresh @ 700
     if newBurstThresh
-        N3 = and(featuresNREM{12},SWS);
+        N3 = and(featuresNREM{12},SWS); % 3 deltas with thresh @ 1000
     end
 end
 
@@ -181,7 +182,7 @@ for i=1:5
     for j=i+1:6
         overlap_duration = tot_length(and(EP{i}, EP{j}));
         if overlap_duration>0
-            disp([NameEpoch{i} 'and ' nameNameEpochEp{j} 'epochs overlap: ' num2str(round(overlap_duration/1E4,2)) 's'])
+            disp([NameEpoch{i} 'and ' NameEpoch{j} 'epochs overlap: ' num2str(round(overlap_duration/1E4,2)) 's'])
         end
     end
 end

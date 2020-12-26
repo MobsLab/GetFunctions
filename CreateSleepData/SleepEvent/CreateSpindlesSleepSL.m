@@ -1,5 +1,6 @@
 % CreateSpindlesSleep
 % 09.11.2017 KJ
+% modified by SL 2020-12
 %
 % Detect spindles and save them
 %
@@ -95,8 +96,8 @@ Info.scoring = scoring;
 Info.frequency_band = [9 18];
 Info.frequency_low = [9 13];
 Info.frequency_high = [13 18];
-Info.durations = [100 350 200000];
-Info.threshold = [2 3];
+Info.durations = [100 300 3000];
+Info.threshold = [1.5 2]; %[2 3];
 Info.EventFileName = ['spindles_' structure hemisphere];
 
 % set folders

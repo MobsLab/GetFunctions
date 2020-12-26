@@ -17,7 +17,7 @@
 
 
 
-function RipplesEpoch = CreateRipplesSleepSL(nonRip, varargin)
+function RipplesEpoch = CreateRipplesSleepSL(varargin)
 
 
 %% 
@@ -138,6 +138,14 @@ Info.channel = channel;
 clear LFP channel 
 
 %load non-ripple channel
+try
+    load([pwd '/ChannelsToAnalyse/nonHPC.mat'],'channel');
+catch
+    warning('Please set a non-ripples channel on HPC and re-run');
+    RipplesEpoch = [];
+    return
+end
+nonRip = channel;
 eval(['load LFPData/LFP',num2str(nonRip)])
 HPCnonRip=LFP;
 

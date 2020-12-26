@@ -66,7 +66,7 @@ for i = 1:2:length(varargin)
             end
 		case 'threshold'
 			threshold = varargin{i+1};
-			if ~isivector(threshold,'#2','>0')
+			if ~isvector(threshold)
 				error('Incorrect value for property ''thresholds'' (type ''help <a href="matlab:help FindSpindlesSB">FindSpindlesSB</a>'' for details).');
 			end
 		case 'durations'
@@ -76,7 +76,7 @@ for i = 1:2:length(varargin)
             end
         case 'mean_std_values'
 			mean_std_values = varargin{i+1};
-			if ~isivector(mean_std_values,'#2','>0')
+			if ~isivector(mean_std_values)
 				error('Incorrect value for property ''mean_std_values'' (type ''help <a href="matlab:help FindSpindlesSB">FindSpindlesSB</a>'' for details).');
 			end
         case 'stim'
@@ -95,7 +95,7 @@ if ~exist('frequency_band','var')
     frequency_band = [10 20];
 end
 if ~exist('threshold','var')
-    threshold = [2 3];
+    threshold = [1.5 2];
 end
 if ~exist('durations','var')
     durations = [200 400 3000]; %in ms
@@ -160,17 +160,55 @@ PotentialSpindleEpochs = dropShortIntervals(PotentialSpindleEpochs, minSpindleDu
 % Get rid of ripples that are too long
 PotentialSpindleEpochs = dropLongIntervals(PotentialSpindleEpochs, maxSpindleDuration);
 
-
 %Epoch with maximum above threshold
 func_max = @(a) measureOnSignal(a,'maximum');
 [maxVal, ~, ~] = functionOnEpochs(SquaredFiltLFP, PotentialSpindleEpochs, func_max);
 spindles_interval = [Start(PotentialSpindleEpochs) End(PotentialSpindleEpochs)];
 idx_spindles =  (maxVal >= threshold(2) * stdVal);
 FinalSpindlesEpoch = intervalSet(spindles_interval(idx_spindles,1), spindles_interval(idx_spindles,2));
-amp = maxVal(idx_spindles);
+
+% % filter false spindles (non-waxing)
+% st_ss = Start(FinalSpindlesEpoch);
+% en_ss = Stop(FinalSpindlesEpoch);
+% realss=[];
+% ii=1;
+% for i=1:length(st_ss)
+%     ssdat = Data(Restrict(SquaredFiltLFP,intervalSet(st_ss(i),en_ss(i))));
+% 	peakIx = LocalMaxima(ssdat,4,0);
+%     if ~isempty(peakIx)
+%         peakval = ssdat(peakIx);
+%         [maxpeak maxidx] = max(peakval);
+%         goodidx = find(peakval >= threshold(1)*stdVal);
+%         peakstd = std(peakval);
+%         medpeak = median(peakval);
+% %         peakcheck = peakval-medpeak;
+%         if goodidx
+%             if (maxidx > 2) && (maxidx < length(peakval)-2)
+%                 if peakval(maxidx-1)>peakval(maxidx)-(medpeak*1.4) && ...
+%                         peakval(maxidx+1)>peakval(maxidx)-(medpeak*1.4) && ...
+%                         peakval(maxidx-2)>peakval(maxidx)-(medpeak*2) && ...
+%                         peakval(maxidx+2)>peakval(maxidx)-(medpeak*2)  % filter out huge peak in sigma band
+%                     difpeak = diff(goodidx);
+%                     try
+%                         if sum(difpeak(maxidx-2:maxidx+1))==4
+%                             realss(ii) = i;
+%                             ii=ii+1;
+%                         end
+%                     end
+%                 end
+%             end
+%         end
+%     end
+% end
+% FinalSpindlesEpoch = intervalSet(st_ss(realss), en_ss(realss));
+
 %timestamps of the nadir
 func_min = @(a) measureOnSignal(a,'minimum');
 [~, nadir_tmp, ~] = functionOnEpochs(FiltLFP, FinalSpindlesEpoch, func_min);
+
+% find peak-to-peak amplitude
+func_amp = @(a) measureOnSignal(a,'amplitude_p2p');
+[amp, ~, ~] = functionOnEpochs(SquaredFiltLFP, FinalSpindlesEpoch, func_amp);
 
 % added by SL 2020-11
 % Detect instantaneous frequency Model 1

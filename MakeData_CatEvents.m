@@ -11,7 +11,6 @@
 
 function tpsCatEvt = MakeData_CatEvents(foldername)
 
-
 %% Initiation
 if nargin < 1
     foldername = pwd;
@@ -27,14 +26,11 @@ if not(isempty( dir('*.cat.evt')))
     
     tpsCatEvt={}; nameCatEvt={};
     for ev = 1:length(evtname_temp)
-        if not(isempty(findstr(evtname_temp{ev},'beginning of'))) | not(isempty(findstr(evtname_temp{ev},'end of')))
+        if not(isempty(findstr(evtname_temp{ev},'beginning of'))) || not(isempty(findstr(evtname_temp{ev},'end of')))
             tpsCatEvt = [tpsCatEvt, evttimes_temp(ev)]; % in seconds
             nameCatEvt = [nameCatEvt, evtname_temp{ev}];
         end
     end
-else
-    
-    
     
 end
 

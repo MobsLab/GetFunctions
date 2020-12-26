@@ -1,7 +1,7 @@
 % CreateDeltaWavesSleep
 % 10.11.2017 KJ
 %
-% Detect delta waves and save them
+% Detect 2-channel delta waves and save them into 'DeltaWaves.mat'
 %
 %INPUTS
 % structure:            Brain area for the detection (e.g 'PFCx')
@@ -86,6 +86,22 @@ if strcmpi(scoring,'accelero')
         load SleepScoring_Accelero SWSEpoch TotalNoiseEpoch
     catch
         load StateEpoch SWSEpoch TotalNoiseEpoch
+        
+        try
+            TotalNoiseEpoch;
+        catch
+            load StateEpoch NoiseEpoch GndNoiseEpoch
+            
+            try
+                TotalNoiseEpoch=or(NoiseEpoch,GndNoiseEpoch);
+            catch
+                TotalNoiseEpoch=NoiseEpoch;
+            end
+           save StateEpoch -Append TotalNoiseEpoch
+            
+        end
+        
+        
     end
 elseif strcmpi(scoring,'ob')
     try
@@ -201,12 +217,16 @@ if ~isempty(InputInfo.channel_deep) && ~isempty(InputInfo.channel_sup)
     intervals = unique(intervals); intervals(intervals==0)=[];
     %selected intervals
     all_cross_thresh = subset(all_cross_thresh2,intervals);
+   
     
-    % crucial element for noise detection.
-    DeltaOffline = dropShortIntervals(all_cross_thresh, InputInfo.min_duration * 10);
+    % Code Modification 2020/03/12 LP : Drop short intervals AFTER
+    % restriction to SWS epoch. 
+    
     %SWS
-    AllDeltas = DeltaOffline;
-    DeltaOffline = and(DeltaOffline, InputInfo.Epoch);
+    DeltaOffline = and(all_cross_thresh, InputInfo.Epoch);
+    % crucial element for noise detection.
+    DeltaOffline = dropShortIntervals(DeltaOffline, InputInfo.min_duration * 10); 
+    AllDeltas = dropShortIntervals(all_cross_thresh, InputInfo.min_duration * 10);
     
 
     eval(['deltas_' InputInfo.structure suffixe ' = DeltaOffline;'])

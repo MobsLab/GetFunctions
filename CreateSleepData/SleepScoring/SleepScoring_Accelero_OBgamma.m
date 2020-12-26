@@ -118,7 +118,7 @@ end
 %% create file
 Info.minduration=minduration;
 if exist('dowiob','var')
-    if dowiob
+    if ~dowiob
         save('SleepScoring_OBGamma','Info')
     end
 else
@@ -136,7 +136,7 @@ Info_accelero = Info_temp;
 
 clear Info_temp
 if exist('dowiob','var')
-    if dowiob
+    if ~dowiob
         save('SleepScoring_OBGamma','Epoch','SubNoiseEpoch','TotalNoiseEpoch','-append')
     end
 else
@@ -147,7 +147,7 @@ save('SleepScoring_Accelero','Epoch','SubNoiseEpoch','TotalNoiseEpoch','-append'
 
 %% Find gamma epochs
 if exist('dowiob','var')
-    if dowiob
+    if ~dowiob
         disp('Gamma Epochs')
         if ~exist('StimEpoch')
             [SleepOB,SmoothGamma,Info_temp]=FindGammaEpoch_SleepScoring(Epoch, channel_bulb, minduration, 'foldername', foldername,...
@@ -181,15 +181,20 @@ end
 
 %% Find immobility epochs
 [ImmobilityEpoch, MovementEpoch, tsdMovement, Info_temp] = FindMovementAccelero_SleepScoring;
-Info_accelero=ConCatStruct(Info_accelero,Info_temp); clear Info_temp;
-save('SleepScoring_Accelero','ImmobilityEpoch','tsdMovement', 'MovementEpoch','-append');
+if ~isempty(ImmobilityEpoch)
+    is_accelero = true;
+    Info_accelero=ConCatStruct(Info_accelero,Info_temp); clear Info_temp;
+    save('SleepScoring_Accelero','ImmobilityEpoch','tsdMovement', 'MovementEpoch','-append');
+else
+    is_accelero = false;
+end
 
 
 %% Find Theta epoch
 disp('Theta Epochs')
 
 if exist('dowiob','var')
-    if dowiob
+    if ~dowiob
         % restricted to sleep with OB gamma
         if ~exist('StimEpoch')
             [ThetaEpoch_OB, SmoothTheta, ~, Info_temp] = FindThetaEpoch_SleepScoring(SleepOB, channel_hpc, minduration, 'foldername', foldername,...
@@ -219,22 +224,24 @@ else
 end
 
 % restricted to immobility epoch
-if ~exist('StimEpoch')
-    [ThetaEpoch_acc, SmoothTheta, ThetaRatioTSD, Info_temp] = FindThetaEpoch_SleepScoring(ImmobilityEpoch, channel_hpc, minduration,...
-        'foldername', foldername,'smoothwindow', smootime);
-else
-    [ThetaEpoch_acc, SmoothTheta, ThetaRatioTSD, Info_temp] = FindThetaEpoch_SleepScoring(ImmobilityEpoch, channel_hpc, minduration,...
-        'foldername', foldername,'smoothwindow', smootime, 'stimepoch', StimEpoch);
+if is_accelero
+    if ~exist('StimEpoch')
+        [ThetaEpoch_acc, SmoothTheta, ThetaRatioTSD, Info_temp] = FindThetaEpoch_SleepScoring(ImmobilityEpoch, channel_hpc, minduration,...
+            'foldername', foldername,'smoothwindow', smootime);
+    else
+        [ThetaEpoch_acc, SmoothTheta, ThetaRatioTSD, Info_temp] = FindThetaEpoch_SleepScoring(ImmobilityEpoch, channel_hpc, minduration,...
+            'foldername', foldername,'smoothwindow', smootime, 'stimepoch', StimEpoch);
+    end
+    Info_accelero = ConCatStruct(Info_accelero,Info_temp); clear Info_temp;
+    ThetaEpoch = ThetaEpoch_acc;
+    save('SleepScoring_Accelero','ThetaEpoch','SmoothTheta', 'ThetaRatioTSD', '-append');
+    clear ThetaEpoch;
 end
-Info_accelero = ConCatStruct(Info_accelero,Info_temp); clear Info_temp;
-ThetaEpoch = ThetaEpoch_acc;
-save('SleepScoring_Accelero','ThetaEpoch','SmoothTheta', 'ThetaRatioTSD', '-append');
-clear ThetaEpoch;
 
 
 %% Define behavioural epochs
 if exist('dowiob','var')
-    if dowiob
+    if ~dowiob
         [REMEpoch,SWSEpoch,Wake,REMEpochWiNoise, SWSEpochWiNoise, WakeWiNoise] = ScoreEpochs_SleepScoring(TotalNoiseEpoch, Epoch, SleepOB, ThetaEpoch_OB, minduration);
         SleepWiNoise = or(REMEpochWiNoise,SWSEpochWiNoise);
         Sleep = or(REMEpoch,SWSEpoch);
@@ -247,16 +254,16 @@ else
     save('SleepScoring_OBGamma','REMEpoch','SWSEpoch','Wake','REMEpochWiNoise', 'SWSEpochWiNoise', 'WakeWiNoise','Sleep','SleepWiNoise','-append');
 end
     
-
-[REMEpoch,SWSEpoch,Wake,REMEpochWiNoise, SWSEpochWiNoise, WakeWiNoise] = ScoreEpochs_SleepScoring(TotalNoiseEpoch, Epoch, ImmobilityEpoch, ThetaEpoch_acc, minduration);
-SleepWiNoise = or(REMEpochWiNoise,SWSEpochWiNoise);
-Sleep = or(REMEpoch,SWSEpoch);
-save('SleepScoring_Accelero','REMEpoch','SWSEpoch','Wake','REMEpochWiNoise', 'SWSEpochWiNoise', 'WakeWiNoise','Sleep','SleepWiNoise','-append')
-
+if is_accelero
+    [REMEpoch,SWSEpoch,Wake,REMEpochWiNoise, SWSEpochWiNoise, WakeWiNoise] = ScoreEpochs_SleepScoring(TotalNoiseEpoch, Epoch, ImmobilityEpoch, ThetaEpoch_acc, minduration);
+    SleepWiNoise = or(REMEpochWiNoise,SWSEpochWiNoise);
+    Sleep = or(REMEpoch,SWSEpoch);
+    save('SleepScoring_Accelero','REMEpoch','SWSEpoch','Wake','REMEpochWiNoise', 'SWSEpochWiNoise', 'WakeWiNoise','Sleep','SleepWiNoise','-append')
+end
 
 %% save Info
 if exist('dowiob','var')
-    if dowiob
+    if ~dowiob
         Info = Info_OB;
         save('SleepScoring_OBGamma','Info','-append')
     end
@@ -264,8 +271,11 @@ else
     Info = Info_OB;
     save('SleepScoring_OBGamma','Info','-append')
 end
-Info = Info_accelero;
-save('SleepScoring_Accelero','Info','-append')
+
+if is_accelero
+    Info = Info_accelero;
+    save('SleepScoring_Accelero','Info','-append')
+end
 
 
 %% Make sleep scoring figure if PlotFigure is 1
@@ -277,7 +287,7 @@ if PlotFigure==1
         LowSpectrumSB(foldername,channel_hpc,'H');
     end
     if exist('dowiob','var')
-        if dowiob
+        if ~dowiob
             if ~(exist('B_High_Spectrum.mat', 'file') == 2)
                 HighSpectrum(foldername,channel_bulb,'B');
             end
@@ -289,7 +299,7 @@ if PlotFigure==1
     end
     % Make figure
     if exist('dowiob','var')
-        if dowiob
+        if ~dowiob
             Figure_SleepScoring_OBGamma(foldername)
         end
     else
@@ -298,8 +308,10 @@ if PlotFigure==1
     
     %Accelerometer
     % Make figure
-    ratio_display_movement = (max(Data(ThetaRatioTSD))-min(Data(ThetaRatioTSD)))/(max(Data(tsdMovement))-min(Data(tsdMovement)));
-    Figure_SleepScoring_Accelero(ratio_display_movement, foldername)
+    if is_accelero
+        ratio_display_movement = (max(Data(ThetaRatioTSD))-min(Data(ThetaRatioTSD)))/(max(Data(tsdMovement))-min(Data(tsdMovement)));
+        Figure_SleepScoring_Accelero(ratio_display_movement, foldername)
+    end
     
 end
 

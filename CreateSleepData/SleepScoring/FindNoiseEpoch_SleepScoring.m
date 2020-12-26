@@ -141,20 +141,28 @@ end
 
 
 %% Low frequency noise - generally grounding problem
-Ok_LowFreq='n';
-while ~strcmpi(Ok_LowFreq,'y')
-    % Stim
-load('behavResources.mat','TTLInfo');
 
-if exist('TTLInfo')
-if isfield(TTLInfo,'StimEpoch')
-    StimNoiseEpoch= intervalSet(Start(TTLInfo.StimEpoch), Start(TTLInfo.StimEpoch)+0.2*1E4);
+% Stim
+if exist('behavResources.mat')>0
+    load('behavResources.mat','TTLInfo');
+    
+    if exist('TTLInfo')
+        if isfield(TTLInfo,'StimEpoch')
+            StimNoiseEpoch= intervalSet(Start(TTLInfo.StimEpoch), Start(TTLInfo.StimEpoch)+0.2*1E4);
+        else
+            StimNoiseEpoch= intervalSet([],[]);
+        end
+    else
+        StimNoiseEpoch= intervalSet([],[]);
+    end
 else
     StimNoiseEpoch= intervalSet([],[]);
+    
 end
-else
-      StimNoiseEpoch= intervalSet([],[]);  
-end
+
+Ok_LowFreq='n';
+while ~strcmpi(Ok_LowFreq,'y')
+
     % display spectrum
     subplot(4,1,3), hold off,
     imagesc(tH,fH(fH<=2),10*log10(LowSp)'), axis xy
@@ -257,18 +265,6 @@ if strcmpi(Do_Weird,'y')
     end
 else
     WeirdNoiseEpoch=intervalSet([],[]);
-end
-
-% Stim
-load('behavResources.mat','TTLInfo');
-if exist('TTLInfo')
-if isfield(TTLInfo,'StimEpoch')
-    StimNoiseEpoch= intervalSet(Start(TTLInfo.StimEpoch), Start(TTLInfo.StimEpoch)+0.2*1E4);
-else
-    StimNoiseEpoch= intervalSet([],[]);
-end
-else
-      StimNoiseEpoch= intervalSet([],[]);  
 end
 
 

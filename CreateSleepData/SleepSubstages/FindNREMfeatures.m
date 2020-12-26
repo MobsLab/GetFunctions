@@ -137,7 +137,7 @@ end
 
 %% Load delta PFCx and find BurstDeltaEpochSleep
 BurstDeltaEpoch_2_700 = FindDeltaBurst2(tdeltas, 0.7, 0);
-BurstDeltaEpoch_3_700 = FindDeltaBurst2(tdeltas, 0.7, 0); % final 1 means that only bursts of at least 3 delta are kept
+BurstDeltaEpoch_3_700 = FindDeltaBurst2(tdeltas, 0.7, 1); % final 1 means that only bursts of at least 3 delta are kept
 BurstDeltaEpoch_2_1000 = FindDeltaBurst2(tdeltas, 1, 0);
 BurstDeltaEpoch_3_1000 = FindDeltaBurst2(tdeltas, 1, 1); % final 1 means that only bursts of at least 3 delta are kept
 

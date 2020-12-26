@@ -43,7 +43,6 @@ try
     end
     disp('Done')
 catch
-    keyboard
     disp('problem for lfp')
     
 end

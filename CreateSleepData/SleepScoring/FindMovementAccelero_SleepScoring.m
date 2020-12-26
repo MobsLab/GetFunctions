@@ -61,7 +61,12 @@ try
         TrackingEpoch=intervalSet(min(Range(MovAcctsd)),max(Range(MovAcctsd)));
     end
 catch
-    disp('missing MovAcctsd');
+    warning('No accelerometer data - Accelerometer-based sleep scoring will not be generated');
+    ImmobilityEpoch = [];
+    MovementEpoch = [];
+    tsdMovement = [];
+    Info = [];
+    return
 end
 
 %% params

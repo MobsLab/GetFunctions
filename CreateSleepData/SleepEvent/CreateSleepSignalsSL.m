@@ -193,7 +193,7 @@ end
 if rip
 %     try
         if exist('ChannelsToAnalyse/dHPC_rip.mat','file')==2 || exist('ChannelsToAnalyse/dHPC_deep.mat','file')==2
-            CreateRipplesSleepSL('scoring',scoring, 'recompute',recompute,'thresh',ripthresh);
+            CreateRipplesSleepSL('scoring',scoring, 'recompute',recompute,'thresh',ripthresh,'stim',stim);
         else
             disp('no HPC channel');
         end

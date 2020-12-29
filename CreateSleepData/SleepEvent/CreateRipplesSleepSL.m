@@ -53,6 +53,11 @@ for i = 1:2:length(varargin)
             if ~isnumeric(thresh)
                 error('Incorrect value for property ''thresh''.');
             end
+        case 'stim'
+            stim = varargin{i+1};
+            if stim~=0 && stim ~=1
+                error('Incorrect value for property ''stim''.');
+            end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -81,6 +86,10 @@ end
 %ripple threshold 
 if ~exist('thresh','var')
     thresh=[5 7];
+end
+%stim
+if ~exist('stim','var')
+    stim=0;
 end
 
 % params
@@ -158,7 +167,9 @@ clear LFP
 %                       F I N D    R I P P L E S  
 % -------------------------------------------------------------------------
 Info.Epoch=Epoch-TotalNoiseEpoch;
-[Ripples, meanVal, stdVal] = FindRipplesSL(HPCrip, HPCnonRip, Info.Epoch, 'frequency_band',Info.frequency_band, 'threshold',Info.threshold, 'durations',Info.durations);
+[Ripples, meanVal, stdVal] = FindRipplesSL(HPCrip, HPCnonRip, Info.Epoch, ...
+    'frequency_band',Info.frequency_band, 'threshold',Info.threshold, ...
+    'durations',Info.durations,'stim',stim);
 RipplesEpoch = intervalSet(Ripples(:,1)*1E4, Ripples(:,3)*1E4);
 tRipples = ts(Ripples(:,2)*1E4);
 

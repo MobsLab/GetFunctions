@@ -102,7 +102,7 @@ Info.EventFileName = ['spindles_' structure hemisphere];
 
 % set folders
 [parentdir,~,~]=fileparts(pwd);
-pathOut = [pwd '/Ripples/' date '/'];
+pathOut = [pwd '/Spindles/' date '/'];
 if ~exist(pathOut,'dir')
     mkdir(pathOut);
 end

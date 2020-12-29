@@ -77,6 +77,11 @@ for i = 1:2:length(varargin)
 			if  ~isdvector(mean_std_values,'#2','>0')   
 				error('Incorrect value for property ''mean_std_values'' (type ''help <a href="matlab:help FindRipplesKJ">FindRipplesKJ</a>'' for details).');
 			end
+        case 'stim'
+            stim = varargin{i+1};
+            if stim~=0 && stim ~=1
+                error('Incorrect value for property ''stim''.');
+            end
         otherwise
 			error(['Unknown property ''' num2str(varargin{i}) ''' (type ''help <a href="matlab:help FindRipplesKJ">FindRipplesKJ</a>'' for details).']);
 	end
@@ -93,6 +98,11 @@ end
 if ~exist('durations','var')
     durations = [15 20 200]; %in ms
 end
+%stim
+if ~exist('stim','var')
+    stim=0;
+end
+
 durations = durations*10;
 minInterRippleInterval = durations(1); % in ts
 minRippleDuration = durations(2);
@@ -121,7 +131,28 @@ nonRipples = thresholdIntervals(SquaredFiltnonLFP, threshold(1)*stdVal_nonRip);
 
 %% Processing Ripple channel
 % Calculate overall SD
-FiltLFP = FilterLFP(LFP, frequency_band, 1024); %filter
+Filsp_tmp = FilterLFP(LFP, frequency_band, 1024); %filter
+% clear stim from LFP
+if stim
+    try
+        load('behavResources.mat','StimEpoch');
+        st = Start(StimEpoch);
+        time = Range(Filsp_tmp);
+        TotalEpoch = intervalSet(time(1), time(end));
+        for istim=1:length(st)
+            sti(istim) = st(istim)-5000;
+            en(istim) = st(istim)+5000;
+        end
+        stim_ti = intervalSet(sti,en);
+        NoStimEpoch = TotalEpoch - stim_ti;
+        FiltLFP = Restrict(Filsp_tmp, NoStimEpoch);
+    catch
+        warning('There is no StimEpoch for this session')
+        FiltLFP=Filsp_tmp;
+    end
+else
+    FiltLFP=Filsp_tmp;
+end
 FiltLFP_EpochRestrict = Restrict(FiltLFP, Epoch); %restrict to Epoch
 signal_squared = abs(Data(FiltLFP_EpochRestrict));
 if exist('mean_std_values','var')

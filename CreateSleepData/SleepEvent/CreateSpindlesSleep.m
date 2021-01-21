@@ -1,5 +1,6 @@
 % CreateSpindlesSleep
 % 09.11.2017 KJ
+% modified by SL 2020-12
 %
 % Detect spindles and save them
 %
@@ -48,10 +49,10 @@ for i = 1:2:length(varargin)
             if recompute~=0 && recompute ~=1
                 error('Incorrect value for property ''recompute''.');
             end
-        case 'save_data'
-            save_data = varargin{i+1};
-            if save_data~=0 && save_data ~=1
-                error('Incorrect value for property ''save_data''.');
+        case 'stim'
+            stim = varargin{i+1};
+            if stim~=0 && stim ~=1
+                error('Incorrect value for property ''stim''.');
             end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
@@ -82,9 +83,9 @@ end
 if ~exist('recompute','var')
     recompute=0;
 end
-%save_data?
-if ~exist('save_data','var')
-    save_data=1;
+%stim
+if ~exist('stim','var')
+    stim=0;
 end
 
 
@@ -92,13 +93,25 @@ end
 Info.structure = structure;
 Info.hemisphere = hemisphere;
 Info.scoring = scoring;
-Info.frequency_band = [10 16];
-Info.frequency_low = [10 13];
-Info.frequency_high = [13 16];
-Info.durations = [100 350 200000];
-
+Info.frequency_band = [9 18];
+Info.frequency_low = [9 13];
+Info.frequency_high = [13 18];
+Info.durations = [100 300 3000];
+Info.threshold = [1.5 2]; %[2 3];
 Info.EventFileName = ['spindles_' structure hemisphere];
 
+% set folders
+[parentdir,~,~]=fileparts(pwd);
+pathOut = [pwd '/Spindles/' date '/'];
+if ~exist(pathOut,'dir')
+    mkdir(pathOut);
+end
+
+%% 
+% ------------------------------------------------------------------------- 
+%                              SECTION
+%                         L O A D    D A T A 
+% -------------------------------------------------------------------------
 % Epoch
 if strcmpi(scoring,'accelero')
     try
@@ -133,20 +146,11 @@ end
 %load channel
 prefixe = ['ChannelsToAnalyse/' structure '_' ];
 
-try
-    load([prefixe 'spindle' suffixe]);
-    if isempty(channel)||isnan(channel)
-        error('channel error'); 
-    else
-        ch_spindle = channel;
-    end
-% catch
-%     load([prefixe 'ecog' suffixe]);
-%     if isempty(channel)||isnan(channel)
-%         error('channel error'); 
-%     else
-%         ch_ecog = channel;
-%     end
+load([prefixe 'spindle' suffixe]);
+if isempty(channel)||isnan(channel)
+    error('channel error'); 
+else
+    ch_spindle = channel;
 end
 
 
@@ -180,12 +184,18 @@ end
 
 %LFP tsd
 eval(['load LFPData/LFP',num2str(Info.channel)])
-LFP_spindles=LFP;
+
+LFP_spindles = LFP;
 clear LFP channel
 
-
-%% spindle detection KJ
-Spindles= FindSpindlesKJ(LFP_spindles, Info.Epoch, 'frequency_band',Info.frequency_band, 'durations',Info.durations);
+%% 
+% ------------------------------------------------------------------------- 
+%                              SECTION
+%                    F I N D    S P I N D L E S 
+% -------------------------------------------------------------------------
+%% spindle detection KJ & SL
+Spindles= FindSpindlesSB_SL(LFP_spindles, Info.Epoch, 'frequency_band',Info.frequency_band, ...
+    'durations',Info.durations,'threshold',Info.threshold,'stim',1);
 SpindlesEpoch = intervalSet(Spindles(:,1)*1e4, Spindles(:,3)*1e4);
 tSpindles = ts(Spindles(:,2)*1e4);
 
@@ -195,7 +205,8 @@ eval(['spindles_' Info.structure suffixe '_Info = Info;'])
 
 
 %low frequency
-spindles_low = FindSpindlesKJ(LFP_spindles, Info.Epoch, 'frequency_band',Info.frequency_low, 'durations',Info.durations);
+spindles_low = FindSpindlesSB_SL(LFP_spindles, Info.Epoch, 'frequency_band',Info.frequency_low, ...
+    'durations',Info.durations,'threshold',Info.threshold,'stim',1);
 SpindlesEpoch = intervalSet(spindles_low(:,1)*1e4, spindles_low(:,3)*1e4);
 tSpindles = ts(spindles_low(:,2)*1e4);
 
@@ -204,43 +215,76 @@ eval(['SpindlesEpoch_low_' Info.structure suffixe ' = SpindlesEpoch;'])
 
 
 %high freaquency
-spindles_high = FindSpindlesKJ(LFP_spindles, Info.Epoch, 'frequency_band',Info.frequency_high, 'durations',Info.durations);
+spindles_high = FindSpindlesSB_SL(LFP_spindles, Info.Epoch, 'frequency_band',Info.frequency_high, ...
+    'durations',Info.durations,'threshold',Info.threshold,'stim',1);
 SpindlesEpoch = intervalSet(spindles_high(:,1)*1e4, spindles_high(:,3)*1e4);
 tSpindles = ts(spindles_high(:,2)*1e4);
 
 eval(['tSpindles_high_' Info.structure suffixe ' = tSpindles;'])
 eval(['SpindlesEpoch_high_' Info.structure suffixe ' = SpindlesEpoch;'])
 
+%% 
+% ------------------------------------------------------------------------- 
+%                              SECTION
+%                            S A V I N G  
+% -------------------------------------------------------------------------
 
-%% save
-if save_data
-    if exist('Spindles.mat', 'file') ~= 2
-        save('Spindles.mat', ['tSpindles_' Info.structure suffixe], ['SpindlesEpoch_' Info.structure suffixe], ['spindles_' Info.structure suffixe '_Info'], ...
-            ['tSpindles_low_' Info.structure suffixe], ['SpindlesEpoch_low_' Info.structure suffixe],...
-            ['tSpindles_high_' Info.structure suffixe], ['SpindlesEpoch_high_' Info.structure suffixe]);
-    else
-        save('Spindles.mat', ['tSpindles_' Info.structure suffixe], ['SpindlesEpoch_' Info.structure suffixe], ['spindles_' Info.structure suffixe '_Info'], ...
-            ['tSpindles_low_' Info.structure suffixe], ['SpindlesEpoch_low_' Info.structure suffixe],...
-            ['tSpindles_high_' Info.structure suffixe], ['SpindlesEpoch_high_' Info.structure suffixe],'-append');
-    end
-    
-
-    %extension evt
-    extens = ['s' lower(structure(1:2))];
-    if ~isempty(hemisphere)
-        extens(3) = lower(hemisphere(1));
-    end
-
-    %evt classic
-    clear evt
-    evt.time = Spindles(:,2);
-    for i=1:length(evt.time)
-        evt.description{i} = ['spindles' Info.structure suffixe];
-    end
-    delete([Info.EventFileName '.evt.' extens]);
-    CreateEvent(evt, Info.EventFileName, extens)
-
+if exist('Spindles.mat', 'file') ~= 2
+    save('Spindles.mat', 'Spindles', 'spindles_low', 'spindles_high', ...
+        ['tSpindles_' Info.structure suffixe], ['SpindlesEpoch_' Info.structure suffixe], ['spindles_' Info.structure suffixe '_Info'], ...
+        ['tSpindles_low_' Info.structure suffixe], ['SpindlesEpoch_low_' Info.structure suffixe],...
+        ['tSpindles_high_' Info.structure suffixe], ['SpindlesEpoch_high_' Info.structure suffixe]);
+else
+    save('Spindles.mat', 'Spindles', 'spindles_low', 'spindles_high', ...
+        ['tSpindles_' Info.structure suffixe], ['SpindlesEpoch_' Info.structure suffixe], ['spindles_' Info.structure suffixe '_Info'], ...
+        ['tSpindles_low_' Info.structure suffixe], ['SpindlesEpoch_low_' Info.structure suffixe],...
+        ['tSpindles_high_' Info.structure suffixe], ['SpindlesEpoch_high_' Info.structure suffixe],'-append');
 end
+
+
+%extension evt
+extens = ['s' lower(structure(1:2))];
+if ~isempty(hemisphere)
+    extens(3) = lower(hemisphere(1));
+end
+
+%evt classic
+clear evt
+evt.time = Spindles(:,2);
+for i=1:length(evt.time)
+    evt.description{i} = ['spindles' Info.structure suffixe];
+end
+delete([Info.EventFileName '.evt.' extens]);
+CreateEvent(evt, Info.EventFileName, extens)
+
+%% 
+% ------------------------------------------------------------------------- 
+%                              SECTION
+%                            F I G U R E  
+% -------------------------------------------------------------------------
+
+% Plot Raw stuff
+[M,T]=PlotRipRaw(LFP_spindles, Spindles(:,1:3), [-1000 1000]);
+saveas(gcf, [pathOut '/Spindleraw.fig']);
+print('-dpng','Spindleraw','-r300');
+close(gcf);
+save('Spindles.mat','M','T','-append');
+
+% plot average spindle
+supertit = ['Average spindle'];
+figure('Color',[1 1 1], 'rend','painters','pos',[10 10 1000 600],'Name', supertit, 'NumberTitle','off')  
+    shadedErrorBar([],M(:,2),M(:,3),'-b',1);
+    xlabel('Time (ms)')
+    ylabel('$${\mu}$$V')   
+    title(['Average spindle']);      
+    xlim([1 size(M,1)])
+    set(gca, 'Xtick', 1:25:size(M,1),...
+                'Xticklabel', num2cell([floor(M(1,1)*1000):20:ceil(M(end,1)*1000)]))   % need to fix x-tick
+
+    %- save picture
+    output_plot = ['average_spindle.png'];
+    fulloutput = [pathOut output_plot];
+    print('-dpng',fulloutput,'-r300');
     
 end
 

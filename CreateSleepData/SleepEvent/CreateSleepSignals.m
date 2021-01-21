@@ -1,19 +1,43 @@
+% -------------------------------------------------------------------------
 % CreateSleepSignals
-% 10.11.2017 KJ
 %
-% Detect and save sleep events:
-%   - Down states       (CreateDownStatesSleep.m)
-%   - Delta waves       (CreateDeltaWavesSleep.m)
-%   - Ripples           (CreateRipplesSleep.m)
-%   - Spindles          (CreateSpindlesSleep.m)
-%
-%
-%INPUTS
-% scoring (optional):   method used to distinguish sleep from wake 
-%                         'accelero' or 'OB'; default is 'accelero'
+% DESCRIPTION:  MAIN of MOBs' CreateSleepSignal pipeline
+%               Detect and save sleep events:
+%               - Down states       (CreateDownStatesSleep.m)
+%               - Delta waves       (CreateDeltaWavesSleep.m)
+%               - Ripples           (CreateRipplesSleep.m)
+%               - Spindles          (CreateSpindlesSleep.m)
 %
 %
-
+% INPUTS: 
+%   VARARGINS:      foldername          Path to folder with SpikeData.mat
+%                                       (if diff than pwd)
+%                   scoring             type of sleep scoring 
+%                                       (accelero or obgamma)
+%                                       default 'ob'
+%                   recompute           recompute detection (0 or 1)
+%                                       default: 1
+%                   stim                stimulations artefact? (0 or 1)
+%                                       default: 0
+%                   down                process down states detection (0 or 1)
+%                                       default: 1
+%                   delta               process delta waves detection (0 or 1)
+%                                       default: 1
+%                   rip                 process ripples detection (0 or 1)
+%                                       default: 1
+%                   spindle             process spindles detection (0 or 1)
+%                                       default: 1
+%                   ripthresh           set specific threshold for ripples
+%                                       [absolute detection; rootsquare det.]
+%                                       default: [4 6; 2 5] 
+%                   
+% VERSIONS
+%   10.11.2017 KJ
+%   2021-01 - Updated by SL: 
+%                   - added conditions for each event type
+%                   - added varargin (stim, ripthresh)
+%                   - find old script in /archived/ with suffixe '-old'
+% -------------------------------------------------------------------------
 
 function [lfp_structures, cortical_structures] = CreateSleepSignals(varargin)
 
@@ -36,6 +60,36 @@ for i = 1:2:length(varargin)
             if recompute~=0 && recompute ~=1
                 error('Incorrect value for property ''recompute''.');
             end
+        case 'stim'
+            stim = varargin{i+1};
+            if stim~=0 && stim ~=1
+                error('Incorrect value for property ''stim''.');
+            end
+        case 'down'
+            down = varargin{i+1};
+            if down~=0 && down ~=1
+                error('Incorrect value for property ''down''.');
+            end
+        case 'delta'
+            delta = varargin{i+1};
+            if delta~=0 && delta ~=1
+                error('Incorrect value for property ''delta''.');
+            end
+        case 'rip'
+            rip = varargin{i+1};
+            if rip~=0 && rip ~=1
+                error('Incorrect value for property ''rip''.');
+            end
+        case 'spindle'
+            spindle = varargin{i+1};
+            if spindle~=0 && spindle ~=1
+                error('Incorrect value for property ''spindle''.');
+            end
+        case 'ripthresh'
+            ripthresh = varargin{i+1};
+            if ~isnumeric(ripthresh)
+                error('Incorrect value for property ''ripthresh''.');
+            end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -50,7 +104,25 @@ if ~exist('scoring','var')
     scoring='ob';
 end
 if ~exist('recompute','var')
-    recompute=0;
+    recompute=1;
+end
+if ~exist('stim','var')
+    stim=0;
+end
+if ~exist('down','var')
+    down=1;
+end
+if ~exist('delta','var')
+    delta=1;
+end
+if ~exist('rip','var')
+    rip=1;
+end
+if ~exist('spindle','var')
+    spindle=1;
+end
+if ~exist('ripthresh','var')
+    ripthresh=[4 6;2 5]; % 1st: thresh for absolute detection; 2nd: thresh for rootsquare det. 
 end
 
 %change directory
@@ -80,95 +152,115 @@ end
 
 
 %down states
-down_structures = cell(0);
-if exist(fullfile(foldername,'SpikeData.mat'), 'file')==2
-    %structures with spikes
-    for i=1:length(cortical_structures)
-        [NumNeurons, ~, ~] = GetSpikesFromStructure(cortical_structures{i}, 'remove_MUA',1,'verbose',0);
-        if ~isempty(NumNeurons)
-            down_structures{end+1} = cortical_structures{i};
+if down
+    down_structures = cell(0);
+    if exist(fullfile(foldername,'SpikeData.mat'), 'file')==2
+        %structures with spikes
+        for i=1:length(cortical_structures)
+            [NumNeurons, ~, ~] = GetSpikesFromStructure(cortical_structures{i}, 'remove_MUA',1,'verbose',0);
+            if ~isempty(NumNeurons)
+                down_structures{end+1} = cortical_structures{i};
+            end
         end
+        %% Down states
+        for i=1:length(down_structures)
+
+            structure = down_structures{i};
+            
+            disp('----------------------------')
+            disp('   Detecting down states')
+            disp('----------------------------')
+            disp('...')
+            CreateDownStatesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute);
+
+            %right and left
+            if exist(['ChannelsToAnalyse/' structure '_deep_left.mat'],'file')==2
+                CreateDownStatesSleep('structure',structure, 'hemisphere','left', 'scoring',scoring, 'recompute',0);
+            end
+            if exist(['ChannelsToAnalyse/' structure '_deep_right.mat'],'file')==2
+                CreateDownStatesSleep('structure',structure, 'hemisphere','right', 'scoring',scoring, 'recompute',0);
+            end
+        end
+        disp('Down states detection done')
+
     end
-
-    %% Down states
-    for i=1:length(down_structures)
-
-        structure = down_structures{i};
-
-        CreateDownStatesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute);
-
-        %right and left
-        if exist(['ChannelsToAnalyse/' structure '_deep_left.mat'],'file')==2
-            CreateDownStatesSleep('structure',structure, 'hemisphere','left', 'scoring',scoring, 'recompute',0);
-        end
-        if exist(['ChannelsToAnalyse/' structure '_deep_right.mat'],'file')==2
-            CreateDownStatesSleep('structure',structure, 'hemisphere','right', 'scoring',scoring, 'recompute',0);
-        end
-    end
-    
 end
 
 
 %% Delta waves
-for i=1:length(cortical_structures)
-    
-    structure = cortical_structures{i};
-    
-    if or(exist(['ChannelsToAnalyse/' structure '_deep.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_delatdeep.mat'],'file')==2) ...
-            & or(exist(['ChannelsToAnalyse/' structure '_sup.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup.mat'],'file')==2)
-        CreateDeltaWavesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute);
-    end
+if delta
+    for i=1:length(cortical_structures)
+
+        structure = cortical_structures{i};
         
-    %right and left
-    if or(exist(['ChannelsToAnalyse/' structure '_deep_left.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltadeep_left.mat'],'file')==2)...
-            & or(exist(['ChannelsToAnalyse/' structure '_sup_left.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup_left.mat'],'file')==2)
-        CreateDeltaWavesSleep('structure',structure, 'hemisphere','left', 'scoring',scoring, 'recompute',recompute);
+        disp('----------------------------')
+        disp('   Detecting delta waves')
+        disp('----------------------------')
+        disp('...')
+
+        if or(exist(['ChannelsToAnalyse/' structure '_deep.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_delatdeep.mat'],'file')==2) ...
+                & or(exist(['ChannelsToAnalyse/' structure '_sup.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup.mat'],'file')==2)
+            CreateDeltaWavesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute);
+        end
+
+        %right and left
+        if or(exist(['ChannelsToAnalyse/' structure '_deep_left.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltadeep_left.mat'],'file')==2)...
+                & or(exist(['ChannelsToAnalyse/' structure '_sup_left.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup_left.mat'],'file')==2)
+            CreateDeltaWavesSleep('structure',structure, 'hemisphere','left', 'scoring',scoring, 'recompute',recompute);
+        end
+        if or(exist(['ChannelsToAnalyse/' structure '_deep_right.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltadeep_right.mat'],'file')==2) ...
+                & or(exist(['ChannelsToAnalyse/' structure '_sup_right.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup_right.mat'],'file')==2)
+            CreateDeltaWavesSleep('structure',structure, 'hemisphere','right', 'scoring',scoring, 'recompute',recompute);
+        end
     end
-    if or(exist(['ChannelsToAnalyse/' structure '_deep_right.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltadeep_right.mat'],'file')==2) ...
-            & or(exist(['ChannelsToAnalyse/' structure '_sup_right.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup_right.mat'],'file')==2)
-        CreateDeltaWavesSleep('structure',structure, 'hemisphere','right', 'scoring',scoring, 'recompute',recompute);
-    end
-    
+    disp('Delta waves detection done')
 end
 
 
 %% Ripples
-try
+if rip
+        
+    disp('----------------------------')
+    disp('     Detecting ripples')
+    disp('----------------------------')
+    disp('...')
+    
     if exist('ChannelsToAnalyse/dHPC_rip.mat','file')==2 || exist('ChannelsToAnalyse/dHPC_deep.mat','file')==2
-        CreateRipplesSleep('scoring',scoring, 'recompute',recompute);
+        CreateRipplesSleep('scoring',scoring, 'recompute',recompute,'thresh',ripthresh,'stim',stim);
     else
         disp('no HPC channel');
     end
-    
+
     if exist('ChannelsToAnalyse/dHPC_rip_left.mat','file')==2
         load('ChannelsToAnalyse/dHPC_rip_left.mat','channel')
         if ~isempty(channel)
-            CreateRipplesSleep('hemisphere','left', 'scoring',scoring, 'recompute',recompute)
+            CreateRipplesSleep('scoring',scoring, 'recompute',recompute,'thresh',ripthresh)
         end
     end
     if exist('ChannelsToAnalyse/dHPC_rip_right.mat','file')==2
          load('ChannelsToAnalyse/dHPC_rip_right.mat','channel')
         if ~isempty(channel)
-            CreateRipplesSleep('hemisphere','right', 'scoring',scoring, 'recompute',recompute)
+            CreateRipplesSleep('scoring',scoring, 'recompute',recompute,'thresh',ripthresh)
         end
     end
-    
-catch
-    disp('Ripples error for this record');
+    disp('Ripples detection done')
 end
 
 
 %% Spindles
 %
-
-for i=1:length(cortical_structures)
-    try
-        structure = cortical_structures{i};
-        CreateSpindlesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute);
-    catch
-        disp(['Spindles (' structure ') Error for this record']);
-    end
+if spindle
         
+    disp('----------------------------')
+    disp('    Detecting spindles')
+    disp('----------------------------')
+    disp('...')
+    
+    for i=1:length(cortical_structures)
+        structure = cortical_structures{i};
+        CreateSpindlesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute,'stim',1);
+    end
+    disp('Spindles detection done')
 end
 
 

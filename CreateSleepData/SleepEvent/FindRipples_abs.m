@@ -1,47 +1,68 @@
+function [ripples, meanVal, stdVal] = FindRipples_abs(LFP, nonLFP, Epoch, varargin)
 
-function [Ripples, meanVal, stdVal] = FindRipplesSL(LFP, nonLFP, Epoch, varargin)
-
-% FindRipplesSL - Find Ripples in LFP signals
-% 07.12.2017 SB & KJ
-% 10.12.2020 S.Laventure
+% =========================================================================
+%                            FindRipples_abs
+% =========================================================================
+% 
+% USAGE: [ripples, meanVal, stdVal] = FindRipples_abs(LFP, nonLFP, Epoch, varargin)
 %
-%%  USAGE
-% [Spindles, meanVal, stdVal] = FindRipplesKJ(LFP, Epoch, varargin)
+% DESCRIPTION:  Detect and save ripples using absolute value
+%               Part of MOBs' CreateSleepSignal pipeline.
 %
+%               Structure of ripples:
+%                   ----------------------------
+%                   - Start (in seconds)
+%                   - Peak (in seconds)
+%                   - End (in seconds)
+%                   - Duration (in milliseconds)
+%                   - Frequency
+%                   - Max p2p amplitude
+%                   ----------------------------
 %
-%%  INFOS 
-% This code was adapted from FindRipplesSB by Karim El Kanbi
-% Cleaned and modified to include amplitude, frequency detection and filtering through a non Ripple channel by
-% Samuel laventure 2020-12
+%               This code was adapted from FindRipplesSB by Karim El Kanbi
+%               Cleaned and modified to include amplitude, frequency 
+%               detection and filtering through a non Ripple channel by
+%               Samuel laventure 2020-12
+% =========================================================================
+% INPUTS: 
+%    __________________________________________________________________
+%       Properties          Description                     Default
+%    __________________________________________________________________
 %
-%    Ripples = FindRipplesKJ(LFP, Epoch, varargin)
+%       LFP                 LFP (one channel).
+%       nonLFP              LFP with channel without targeted events 
+%       Epoch               Targeted epoch
 %
-%    
+%       <varargin>          optional list of property-value pairs (see table below)
 %
-%    LFP                    LFP (one channel).
-%    nonLFP                 LFP with channel without targeted events 
-%    SWSEpoch               Epoch of SWS
-%
-%    <options>              optional list of property-value pairs (see table below)
-%    =========================================================================
-%     Properties            Values
-%    -------------------------------------------------------------------------
 %     'frequency_band'      frequency band of the ripples (default = [120 250])  
-%     'threshold'           thresholds for ripple detection (default = [5 7])
+%     'threshold'           thresholds for ripple detection (default = [4 6])
 %     'durations'           min inter-ripple interval & min and max ripple duration, in ms
 %                           (default = [15 20 200])
 %     'mean_std_values'     mean and standard deviation to normalize signals
 %                           (default: computed on signals)
-%    =========================================================================
+%     'stim'                (0 or 1) stimulation to filter out  
 %
-%  OUTPUT
+% =========================================================================
+% OUTPUT:
+%    __________________________________________________________________
+%       Properties          Description                   
+%    __________________________________________________________________
 %
-%    Ripples               [start peak end] of ripples, in ms
+%       ripples             [start(in s) peak(in s) end(in s) duration(in ms) 
+%                           frequency peak-amplitude]              
+%       meanVal             average value of LFP
+%       stdVal              standard value of LFP
+% =========================================================================
+% VERSIONS
+%   07.12.2017 SB & KJ
+%   10.12.2020 S. Laventure
+%   20.01.2021 S. Laventure - adapted to MOBs pipeline
 %
-%  SEE
-%       FindRipples, FindRipplesSB, FindSpindlesKJ, FindSpindlesSB
-%
-
+% =========================================================================
+% SEE   CreateSpindlesSleep CreateDownStatesSleep CreateDeltaWavesSleep
+%       FindRipples_zug FindRipples FindRipples_sqrt
+% =========================================================================
 
 
 %% Initiation
@@ -93,7 +114,7 @@ if ~exist('frequency_band','var')
     frequency_band = [120 220];
 end
 if ~exist('threshold','var')
-    threshold = [2 5];
+    threshold = [4 6];
 end
 if ~exist('durations','var')
     durations = [15 20 200]; %in ms
@@ -110,24 +131,32 @@ maxRippleDuration = durations(3);
 frequency = 1250; % default sampling rate (need to get frequency of events)
 
 %% Processing non-Ripple channel
-% calculate overall SD
-FiltnonLFP = FilterLFP(nonLFP, frequency_band, 1024); %filter
-FiltnonLFP_EpochRestrict = Restrict(FiltnonLFP, Epoch); %restrict to Epoch
-signal_squared = abs(Data(FiltnonLFP_EpochRestrict));
-if exist('mean_std_values','var')
-    meanVal_nonRip = mean_std_values(1);
-    stdVal_nonRip = mean_std_values(2);
+if ~isempty(nonLFP)
+    rmvnoise=1;
 else
-    meanVal_nonRip = mean(signal_squared);
-    stdVal_nonRip = std(signal_squared);
+    rmvnoise=0;
 end
 
-%signal taken over the whole record for detection
-signal_squared = abs(Data(FiltnonLFP));
-SquaredFiltnonLFP = tsd(Range(FiltnonLFP),signal_squared-meanVal_nonRip);
+if rmvnoise
+    % calculate overall SD
+    FiltnonLFP = FilterLFP(nonLFP, frequency_band, 1024); %filter
+    FiltnonLFP_EpochRestrict = Restrict(FiltnonLFP, Epoch); %restrict to Epoch
+    signal_squared = abs(Data(FiltnonLFP_EpochRestrict));
+    if exist('mean_std_values','var')
+        meanVal_nonRip = mean_std_values(1);
+        stdVal_nonRip = mean_std_values(2);
+    else
+        meanVal_nonRip = mean(signal_squared);
+        stdVal_nonRip = std(signal_squared);
+    end
 
-% Detect using low threshold
-nonRipples = thresholdIntervals(SquaredFiltnonLFP, threshold(1)*stdVal_nonRip);
+    %signal taken over the whole record for detection
+    signal_squared = abs(Data(FiltnonLFP));
+    SquaredFiltnonLFP = tsd(Range(FiltnonLFP),signal_squared-meanVal_nonRip);
+
+    % Detect using low threshold
+    nonRipples = thresholdIntervals(SquaredFiltnonLFP, threshold(1)*stdVal_nonRip);
+end
 
 %% Processing Ripple channel
 % Calculate overall SD
@@ -171,27 +200,30 @@ SquaredFiltLFP = tsd(Range(FiltLFP),signal_squared-meanVal);
 
 % Detect using low threshold
 PotentialRipples = thresholdIntervals(SquaredFiltLFP, threshold(1)*stdVal);
-disp(['Step 1: After LOW thresholding: ' num2str(length(Start(PotentialRipples))) ' events']);
+disp(['  Step 1: After LOW thresholding: ' num2str(length(Start(PotentialRipples))) ' events']);
 
 % Merge ripples that are very close together
 PotentialRipples = mergeCloseIntervals(PotentialRipples, minInterRippleInterval);
-disp(['Step 2: After Merging close events: ' num2str(length(Start(PotentialRipples))) ' events']);
+disp(['  Step 2: After merging close events: ' num2str(length(Start(PotentialRipples))) ' events']);
 
 % Filtering out artefact events
-st = Start(nonRipples);
-en = End(nonRipples);
-ev_ti = intervalSet(st-500,en+500);
-PotentialRipples = PotentialRipples - ev_ti;
-disp(['Step 3: After removing artefacts (from non-ripple channel): ' num2str(length(Start(PotentialRipples))) ' events']);
+if rmvnoise
+    st = Start(nonRipples);
+    en = End(nonRipples);
+    ev_ti = intervalSet(st-500,en+500);
+    PotentialRipples = PotentialRipples - ev_ti;
+    disp(['  Step 3: After removing artefacts (from non-ripple channel): ' num2str(length(Start(PotentialRipples))) ' events']);
+else
+    disp('  Step 3: No non-ripple channel set.')
+end
 
 % Get rid of ripples that are too short
 PotentialRipples = dropShortIntervals(PotentialRipples, minRippleDuration);
-disp(['Step 4: After removing too short events: ' num2str(length(Start(PotentialRipples))) ' events']);
+disp(['  Step 4: After removing too short events: ' num2str(length(Start(PotentialRipples))) ' events']);
 
 % Get rid of ripples that are too long
 PotentialRipples = dropLongIntervals(PotentialRipples, maxRippleDuration);
-disp(['Step 5: After removing too long events: ' num2str(length(Start(PotentialRipples))) ' events']);
-
+disp(['  Step 5: After removing too long events: ' num2str(length(Start(PotentialRipples))) ' events']);
 
 %Epoch with maximum above threshold
 func_max = @(a) measureOnSignal(a,'maximum');
@@ -208,12 +240,12 @@ if not(isempty(Start(PotentialRipples)))
 else
     FinalRipplesEpoch = PotentialRipples;
 end
-disp(['Step 6: After removing events below 2nd threshold: ' num2str(length(Start(FinalRipplesEpoch))) ' events']);
+disp(['  Step 6: After removing events below 2nd threshold: ' num2str(length(Start(FinalRipplesEpoch))) ' events']);
 
-
+%% Extracting chracteristics
 % find peak-to-peak amplitude
 func_amp = @(a) measureOnSignal(a,'amplitude_p2p');
-[amp, ~, ~] = functionOnEpochs(SquaredFiltLFP, FinalRipplesEpoch, func_amp);
+[amp, ~, ~] = functionOnEpochs(FiltLFP, FinalRipplesEpoch, func_amp);
 
 % Detect instantaneous frequency Model 1
 st_ss = Start(FinalRipplesEpoch);
@@ -234,21 +266,21 @@ end
 %     end
 % end
 
-%% results
+%% Creating main variable
 if not(isempty(Start(FinalRipplesEpoch)))
-    Ripples(:,1) = Start(FinalRipplesEpoch,'s');
-    Ripples(:,2) = nadir_tmp / 1E4;  
-    Ripples(:,3) = Stop(FinalRipplesEpoch,'s');
-    Ripples(:,4) = Stop(FinalRipplesEpoch,'ms')-Start(FinalRipplesEpoch,'ms');
-    Ripples(:,5) = freq;
-    Ripples(:,6) = amp;
+    ripples(:,1) = Start(FinalRipplesEpoch,'s');
+    ripples(:,2) = nadir_tmp / 1E4;  
+    ripples(:,3) = Stop(FinalRipplesEpoch,'s');
+    ripples(:,4) = Stop(FinalRipplesEpoch,'ms')-Start(FinalRipplesEpoch,'ms');
+    ripples(:,5) = freq;
+    ripples(:,6) = amp;
 else
-    Ripples(:,1) = NaN;
-    Ripples(:,2) = NaN;
-    Ripples(:,3) = NaN;
-    Ripples(:,4) = NaN;
-    Ripples(:,5) = NaN;
-    Ripples(:,6) = NaN;
+    ripples(:,1) = NaN;
+    ripples(:,2) = NaN;
+    ripples(:,3) = NaN;
+    ripples(:,4) = NaN;
+    ripples(:,5) = NaN;
+    ripples(:,6) = NaN;
 end
 
 

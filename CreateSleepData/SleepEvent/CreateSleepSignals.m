@@ -1,6 +1,8 @@
-% -------------------------------------------------------------------------
-% CreateSleepSignals
-%
+function [lfp_structures, cortical_structures] = CreateSleepSignals(varargin)
+
+% =========================================================================
+%                          CreateSleepSignals
+% =========================================================================
 % DESCRIPTION:  MAIN of MOBs' CreateSleepSignal pipeline
 %               Detect and save sleep events:
 %               - Down states       (CreateDownStatesSleep.m)
@@ -8,39 +10,53 @@
 %               - Ripples           (CreateRipplesSleep.m)
 %               - Spindles          (CreateSpindlesSleep.m)
 %
-%
+% =========================================================================
 % INPUTS: 
-%   VARARGINS:      foldername          Path to folder with SpikeData.mat
-%                                       (if diff than pwd)
-%                   scoring             type of sleep scoring 
-%                                       (accelero or obgamma)
-%                                       default 'ob'
-%                   recompute           recompute detection (0 or 1)
-%                                       default: 1
-%                   stim                stimulations artefact? (0 or 1)
-%                                       default: 0
-%                   down                process down states detection (0 or 1)
-%                                       default: 1
-%                   delta               process delta waves detection (0 or 1)
-%                                       default: 1
-%                   rip                 process ripples detection (0 or 1)
-%                                       default: 1
-%                   spindle             process spindles detection (0 or 1)
-%                                       default: 1
-%                   ripthresh           set specific threshold for ripples
-%                                       [absolute detection; rootsquare det.]
-%                                       default: [4 6; 2 5] 
-%                   
+%    __________________________________________________________________
+%       Properties          Description                     Default
+%    __________________________________________________________________
+%
+%       <varargin>
+%       foldername          Path to folder with SpikeData.mat
+%                           (if diff than pwd)
+%       scoring             type of sleep scoring 
+%                           (accelero or obgamma)
+%                                                       default 'ob'
+%       recompute           recompute detection (0 or 1)
+%                                                       default: 1
+%       stim                stimulations artefact? (0 or 1)
+%                                                       default: 0
+%       down                process down states detection (0 or 1)
+%                                                       default: 1
+%       delta               process delta waves detection (0 or 1)
+%                                                       default: 1
+%       rip                 process ripples detection (0 or 1)
+%                                                       default: 1
+%       spindle             process spindles detection (0 or 1)
+%                                                       default: 1
+%       ripthresh           set specific threshold for ripples
+%                           [absolute detection; rootsquare det.]
+%                                                       default: [4 6; 2 5] 
+%
+% =========================================================================
+% OUTPUT:
+%    __________________________________________________________________
+%       Properties          Description                   
+%    __________________________________________________________________
+%
+%       RipplesEpoch        Ripples start and en timestamps (intervalSet)             
+%
+% =========================================================================
 % VERSIONS
 %   10.11.2017 KJ
 %   2021-01 - Updated by SL: 
 %                   - added conditions for each event type
 %                   - added varargin (stim, ripthresh)
 %                   - find old script in /archived/ with suffixe '-old'
-% -------------------------------------------------------------------------
-
-function [lfp_structures, cortical_structures] = CreateSleepSignals(varargin)
-
+%
+% =========================================================================
+% SEE CreateSpindlesSleep CreateDownStatesSleep CreateDeltaWavesSleep
+% =========================================================================
 
 % Parse parameter list
 for i = 1:2:length(varargin)

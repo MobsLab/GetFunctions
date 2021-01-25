@@ -185,15 +185,25 @@ end
 % -------------------------------------------------------------------------
 if strcmpi(scoring,'accelero')
     try
-        load SleepScoring_Accelero Epoch TotalNoiseEpoch
+        load SleepScoring_Accelero Epoch TotalNoiseEpoch SWSEpoch
     catch
-        load StateEpoch Epoch TotalNoiseEpoch
+        try
+            load StateEpoch Epoch TotalNoiseEpoch SWSEpoch
+        catch
+            warning('Please, run sleep scoring before extracting ripples!');
+            return
+        end
     end
 elseif strcmpi(scoring,'ob')
     try
-        load SleepScoring_OBGamma Epoch TotalNoiseEpoch
+        load SleepScoring_OBGamma Epoch TotalNoiseEpoch SWSEpoch
     catch
-        load StateEpochSB Epoch TotalNoiseEpoch
+        try
+            load StateEpochSB Epoch TotalNoiseEpoch SWSEpoch
+        catch
+            warning('Please, run sleep scoring before extracting ripples!');
+            return
+        end
     end
     
 end
@@ -242,15 +252,16 @@ end
 % -------------------------------------------------------------------------
 
 Info.Epoch=Epoch-TotalNoiseEpoch;
+Info.SWSEpoch=Epoch-TotalNoiseEpoch;
 
 % Step 1: detect using LFP's absolute value
 disp('----------------------------------------')
-disp(' ')
+disp(' ') 
 disp('Detecting using absolute value of the LFP')
 disp(' ')
-[ripples_abs, meanVal, stdVal] = FindRipples_abs(HPCrip, HPCnonRip, Info.Epoch, ...
-    'frequency_band',Info.frequency_band, 'threshold',Info.threshold(1,:), ...
-    'durations',Info.durations,'stim',stim);
+[ripples_abs, meanVal, stdVal] = FindRipples_abs(HPCrip, HPCnonRip, ...
+    Info.Epoch, Info.SWSEpoch,'frequency_band',Info.frequency_band, ...
+    'threshold',Info.threshold(1,:),'durations',Info.durations,'stim',stim);
 
 % Step 2: detect using LFP's square root 
 disp('----------------------------------------')
@@ -293,6 +304,12 @@ ripples_tmp = [ripples_sqrt([id{1}'; id{2}'],:); ripples_abs(id{3}',:)];
 % sorting events by start time
 [~,idx] = sort(ripples_tmp(:,1)); % sort just the first column
 ripples = ripples_tmp(idx,:);   % sort the whole matrix using the sort indices
+
+% saving final results
+ripples_Info.results.common = length(id{1});
+ripples_Info.results.sqrt_only = length(id{2});
+ripples_Info.results.abs_only = length(id{3});
+ripples_Info.results.total = size(ripples,1);
 
 % display final results
 disp('----------------------------------------')

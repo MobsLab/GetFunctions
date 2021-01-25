@@ -1,4 +1,4 @@
-function [ripples, meanVal, stdVal] = FindRipples_abs(LFP, nonLFP, Epoch, varargin)
+function [ripples, meanVal, stdVal] = FindRipples_abs(LFP, nonLFP, Epoch, SWSEpoch, varargin)
 
 % =========================================================================
 %                            FindRipples_abs
@@ -142,12 +142,15 @@ if rmvnoise
     FiltnonLFP = FilterLFP(nonLFP, frequency_band, 1024); %filter
     FiltnonLFP_EpochRestrict = Restrict(FiltnonLFP, Epoch); %restrict to Epoch
     signal_squared = abs(Data(FiltnonLFP_EpochRestrict));
+    % prep data for sd
+    nonlfp_sws = Restrict(FiltnonLFP, SWSEpoch); %restrict to Epoch
+    signal_squared_non_sws = abs(Data(nonlfp_sws));
     if exist('mean_std_values','var')
         meanVal_nonRip = mean_std_values(1);
         stdVal_nonRip = mean_std_values(2);
     else
-        meanVal_nonRip = mean(signal_squared);
-        stdVal_nonRip = std(signal_squared);
+        meanVal_nonRip = mean(signal_squared_non_sws);
+        stdVal_nonRip = std(signal_squared_non_sws);
     end
 
     %signal taken over the whole record for detection
@@ -186,12 +189,15 @@ end
 
 FiltLFP_EpochRestrict = Restrict(FiltLFP, Epoch); %restrict to Epoch
 signal_squared = abs(Data(FiltLFP_EpochRestrict));
+% prep data for sd
+lfp_sws = Restrict(FiltLFP, SWSEpoch); %restrict to Epoch
+signal_squared_sws = abs(Data(lfp_sws));
 if exist('mean_std_values','var')
     meanVal = mean_std_values(1);
     stdVal = mean_std_values(2);
 else
-    meanVal = mean(signal_squared);
-    stdVal = std(signal_squared);
+    meanVal = mean(signal_squared_sws);
+    stdVal = std(signal_squared_sws);
 end
 
 %signal taken over the whole record for detection

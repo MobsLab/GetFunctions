@@ -1,26 +1,56 @@
-% CreateSpindlesSleep
-% 09.11.2017 KJ
-% modified by SL 2020-12
-%
-% Detect spindles and save them
-%
-%INPUTS
-% structure:            Brain area for the detection (e.g 'PFCx')
-% hemisphere:           Right or Left (or None)
-% 
-% scoring (optional):   method used to distinguish sleep from wake 
-%                         'accelero' or 'OB'; default is 'accelero'
-%
-%%OUTPUT
-% SpindleEpochs:        Spindles epochs  
-%
-%%SEE 
-%   CreateDownStatesSleep CreateRipplesSleep CreateDeltaWavesSleep 
-%
-
-
 function SpindleEpochs = CreateSpindlesSleep(varargin)
 
+% =========================================================================
+%                            CreateRipplesSleep
+% =========================================================================
+% DESCRIPTION:  Detect and save spindles.
+%               Part of MOBs' CreateSleepSignal pipeline.
+%
+%               Structure of SWR.mat -> ripples:
+%                   ----------------------------
+%                   - Start (in seconds)
+%                   - Peak (in seconds)
+%                   - End (in seconds)
+%                   - Duration (in milliseconds)
+%                   - Frequency
+%                   - Max p2p amplitude
+%                   ----------------------------
+%               Also saves, waveforms and average, general infos, spindles
+%               epochs
+%
+% =========================================================================
+% INPUTS: 
+%    __________________________________________________________________
+%       Properties          Description                     Default
+%    __________________________________________________________________
+%
+%       <varargin>
+%
+%       scoring             type of sleep scoring 
+%                           (accelero or obgamma)
+%                                                           default 'ob'
+%       deep                if detection should be done on PFC deep layer
+%       recompute           recompute detection (0 or 1)
+%                                                           default: 1
+%       stim                stimulations artefact? (0 or 1)
+%                                                           default: 0
+%
+% =========================================================================
+% OUTPUT:
+%    __________________________________________________________________
+%       Properties          Description                   
+%    __________________________________________________________________
+%
+%       SpindlesEpoch       Spindles start and en timestamps (intervalSet)             
+%
+% =========================================================================
+% VERSIONS
+%   09.11.2017 KJ
+%   Updated 2020-12 SL: updated
+%
+% =========================================================================
+% SEE CreateSleepSlignal CreateDownStatesSleep CreateDeltaWavesSleep
+% =========================================================================
 
 %% Initiation
 

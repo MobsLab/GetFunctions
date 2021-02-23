@@ -59,7 +59,13 @@ end
 
 
 %% Get Ripples
-if exist(fullfile(foldername,'Ripples.mat'), 'file')==2
+if exist(fullfile(foldername,'SWR.mat'), 'file')==2
+    load(fullfile(foldername,'SWR.mat'));
+    
+    if ~exist('tRipples','var')
+        tRipples = ts(Ripples(:,2)*10);
+    end 
+elseif exist(fullfile(foldername,'Ripples.mat'), 'file')==2
     load(fullfile(foldername,'Ripples.mat'));
     
     if ~exist('tRipples','var')

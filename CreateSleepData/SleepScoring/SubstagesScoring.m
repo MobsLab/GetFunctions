@@ -93,6 +93,7 @@ t_mergeEp=3; % in second
 t_dropEp=1;
 
 
+warning('off','all')
 %% Sleep stages and substages
 
 % sleep and SI
@@ -122,7 +123,11 @@ SWS = mergeCloseIntervals(SWS,t_mergeEp*1E4);
 SWS = dropShortIntervals(SWS,t_dropEp*1E4);
 SWS = CleanUpEpoch(SWS);
 
-% Wake
+% Wake disp('Following option is OFF : Burst is defined as at least 3 delta')
+    N3 = and(featuresNREM{10},SWS);  % 3 deltas with thresh @ 700
+    if newBurstThresh
+        N3 = and(featuresNREM{12},SWS); % 3 deltas with thresh @ 1000
+    end
 WAKE = mergeCloseIntervals(featuresNREM{6},t_mergeEp*1E4);
 WAKE = (WAKE-REM)-SWS;
 WAKE = dropShortIntervals(WAKE,t_dropEp*1E4);
@@ -137,13 +142,13 @@ WAKEnoise = CleanUpEpoch(WAKEnoise);
 % N3
 
 if ~BurstIs3
-    disp('Following option is ON : Burst is defined as at least 2 delta')
+    disp('Burst is defined as at least 2 delta')
     N3 = and(featuresNREM{4}, SWS);  % 2 deltas with thresh @ 700
     if newBurstThresh
         N3 = and(featuresNREM{11}, SWS); % 2 deltas with thresh @ 1000
     end
 else
-    disp('Following option is OFF : Burst is defined as at least 3 delta')
+    disp('Burst is defined as at least 3 delta')
     N3 = and(featuresNREM{10},SWS);  % 3 deltas with thresh @ 700
     if newBurstThresh
         N3 = and(featuresNREM{12},SWS); % 3 deltas with thresh @ 1000
@@ -200,11 +205,11 @@ for i=1:length(EP)
     start_epochs = [start_epochs;Start(EP{i})];
     end_epochs = [end_epochs; [Stop(EP{i}) i*ones(size(Stop(EP{i})))]];
 end
-
 TOTepoch = intervalSet(min(start_epochs), max(end_epochs(:,1)));
 lostEpoch = TOTepoch-WAKEnoise-REM-N1-N2-N3-SI;
 lostEpoch = CleanUpEpoch(lostEpoch);
 lostEpoch = mergeCloseIntervals(lostEpoch,1);
+warning('on','all')
 
 start_lostepoch = Start(lostEpoch);
 disp(['! ' num2str(length(start_lostepoch)) ' lost epochs'   ])

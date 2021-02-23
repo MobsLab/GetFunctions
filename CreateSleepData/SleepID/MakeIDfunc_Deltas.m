@@ -81,10 +81,13 @@ end
 if ~exist('LFPsup','var')
     %LFP sup
     load('DeltaWaves.mat', 'deltas_PFCx_Info')
-    load(['LFPData/LFP' num2str(deltas_PFCx_Info.channel_sup)],'LFP')
-    LFPsup=LFP;
-    clear LFP channel
-    
+    if ~isnan(deltas_PFCx_Info.channel_sup)
+        load(['LFPData/LFP' num2str(deltas_PFCx_Info.channel_sup)],'LFP')
+        LFPsup=LFP;
+        clear LFP channel
+    else
+        LFPsup=[];
+    end
 end
 
 if ~exist('LFPdeep','var')
@@ -109,7 +112,12 @@ long_deltas = deltas_tmp(idx_delta_sorted(end-halfsize+1:end));
 
 
 %% Mean curves
-meancurve.short.sup = PlotRipRaw(LFPsup, sort(short_deltas), 500, 0, 0); close
+% short deltas
+if ~isempty(LFPsup)
+    meancurve.short.sup = PlotRipRaw(LFPsup, sort(short_deltas), 500, 0, 0); close
+else
+    meancurve.short.sup = [];
+end    
 if not(isempty(MUA))
     meancurve.short.mua = PlotRipRaw(MUA, sort(short_deltas), 500, 0, 0); close
 else
@@ -117,7 +125,12 @@ else
 end
 meancurve.short.deep = PlotRipRaw(LFPdeep, sort(short_deltas), 500, 0, 0); close
 
-meancurve.long.sup = PlotRipRaw(LFPsup, sort(long_deltas), 500, 0, 0); close
+% long deltas
+if ~isempty(LFPsup)
+    meancurve.long.sup = PlotRipRaw(LFPsup, sort(long_deltas), 500, 0, 0); close
+else
+    meancurve.long.sup = [];
+end
 if not(isempty(MUA))
     meancurve.long.mua = PlotRipRaw(MUA, sort(long_deltas), 500, 0, 0); close
 else

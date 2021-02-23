@@ -48,7 +48,7 @@ if ~exist('windowsize','var')
 end
 
 %% load
-if exist('Ripples.mat','file')==2
+if exist('Ripples.mat','file')==2 || exist('SWR.mat','file')==2
         [tRipples, RipplesEpoch] = GetRipples;
         ripples_tmp = Range(tRipples,'s');
 %     load('Ripples.mat', 'Ripples')

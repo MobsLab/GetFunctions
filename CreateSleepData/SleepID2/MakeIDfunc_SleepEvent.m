@@ -145,6 +145,8 @@ end
 if exist('Ripples','var')
 %     ripples_tmp = Ripples(:,2);
     ripples_tmp =  Range(tRipples,'s');
+elseif exist('ripples','var')
+    ripples_tmp =  Range(tRipples,'s');
 else
     ripples_tmp = [];
 end

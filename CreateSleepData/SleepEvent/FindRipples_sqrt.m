@@ -133,7 +133,7 @@ if clean == 1
     NoiseEpoch=thresholdIntervals(LFPr,-noise_thr,'Direction','Below'); % Threshold on non-filtered data!!!
     CleanEpoch=or(AboveEpoch,NoiseEpoch);
     CleanEpoch=intervalSet(Start(CleanEpoch)-3E3,End(CleanEpoch)+5E3);
-    if exist('TTLInfo')
+    if isfield(TTLInfo, 'StimEpoch')
         StimEpoch = intervalSet(Start(TTLInfo.StimEpoch)-1E3, End(TTLInfo.StimEpoch)+3E3);
         GoEpoch = or(CleanEpoch,StimEpoch);
     else

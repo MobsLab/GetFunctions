@@ -40,6 +40,11 @@ for i = 1:2:length(varargin)
             if recompute~=0 && recompute ~=1
                 error('Incorrect value for property ''recompute''.');
             end
+        case 'thresh'
+            thresh = varargin{i+1};
+            if ~isnumeric(thresh)
+                error('Incorrect value for property ''thresh''.');
+            end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -65,6 +70,10 @@ end
 if ~exist('recompute','var')
     recompute=0;
 end
+%thresholds 
+if ~exist('thresh','var')
+    thresh=[2 1]; 
+end
 
 
 %% params
@@ -73,8 +82,10 @@ InputInfo.hemisphere = hemisphere;
 InputInfo.scoring = scoring;
 
 InputInfo.freq_delta = [1 12];
-InputInfo.thresh_std = 2;
-InputInfo.thresh_std2 = 1;
+% InputInfo.thresh_std = 2;
+% InputInfo.thresh_std2 = 1;
+InputInfo.thresh_std = thresh(1);
+InputInfo.thresh_std2 = thresh(2);
 InputInfo.min_duration = 75;
 InputInfo.SaveDelta = 1;
 

@@ -101,20 +101,27 @@ if exist('ChannelsToAnalyse/PFCx_sup.mat','file')==2
         load('ChannelsToAnalyse/PFCx_deltasup.mat');
         channel_sup = channel;
     end
-else
+elseif exist('ChannelsToAnalyse/PFCx_deltasup.mat','file')==2
     load('ChannelsToAnalyse/PFCx_deltasup.mat');
     channel_sup = channel;
+else
+    channel_sup = -1;
 end
 clear channel
 
 %Find Oscillatory periods (inspired from FindSleepStageML)
 eval(['load LFPData/LFP',num2str(channel_deep)])
 LFPdeep=LFP;
-
 [deep_OsciEpochSleep]=FindOsciEpochs(LFPdeep,EpochSleep);
-eval(['load LFPData/LFP',num2str(channel_sup)])
-LFPsup=LFP;
-[sup_OsciEpochSleep]=FindOsciEpochs(LFPsup,EpochSleep);
+
+if channel_sup >= 0
+    eval(['load LFPData/LFP',num2str(channel_sup)])
+    LFPsup=LFP;
+    [sup_OsciEpochSleep]=FindOsciEpochs(LFPsup,EpochSleep);
+else
+    sup_OsciEpochSleep=intervalSet([],[]);
+end
+
 %spindles
 try
     load('Spindles','SpindlesEpoch_PFCx')

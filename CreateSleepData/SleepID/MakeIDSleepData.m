@@ -139,11 +139,15 @@ if recompute || ~exist('Msup_short_delta','var')
     else
         [meancurve, ~] = MakeIDfunc_Deltas('mua', []);
     end
-    Msup_short_delta = meancurve.short.sup; Mdeep_short_delta = meancurve.short.deep;
-    Msup_long_delta = meancurve.long.sup; Mdeep_long_delta = meancurve.long.deep;
-    Mmua_short_delta = meancurve.short.mua; Mmua_long_delta = meancurve.long.mua;
-
+    Msup_short_delta = meancurve.short.sup; 
+    Msup_long_delta = meancurve.long.sup;  
+    Mdeep_short_delta = meancurve.short.deep;
+    Mdeep_long_delta = meancurve.long.deep;
+    Mmua_short_delta = meancurve.short.mua; 
+    Mmua_long_delta = meancurve.long.mua;
+    
     save IdFigureData -append Msup_short_delta Mdeep_short_delta Msup_long_delta Mdeep_long_delta
+    save DeltaWaves -append Msup_short_delta Mdeep_short_delta Msup_long_delta Mdeep_long_delta
     try
         save IdFigureData -append Mmua_short_delta Mmua_long_delta
     end

@@ -37,6 +37,8 @@ function [lfp_structures, cortical_structures] = CreateSleepSignals(varargin)
 %       ripthresh           set specific threshold for ripples
 %                           [absolute detection; rootsquare det.]
 %                                                       default: [4 6; 2 5] 
+%       delthresh           set specific threshold for deltas
+%                                                       default: [2 1] 
 %
 % =========================================================================
 % OUTPUT:
@@ -53,6 +55,7 @@ function [lfp_structures, cortical_structures] = CreateSleepSignals(varargin)
 %                   - added conditions for each event type
 %                   - added varargin (stim, ripthresh)
 %                   - find old script in /archived/ with suffixe '-old'
+%   2021-02 - Added delta threshold argument to delta function. (SL)
 %
 % =========================================================================
 % SEE CreateSpindlesSleep CreateDownStatesSleep CreateDeltaWavesSleep
@@ -106,6 +109,11 @@ for i = 1:2:length(varargin)
             if ~isnumeric(ripthresh)
                 error('Incorrect value for property ''ripthresh''.');
             end
+        case 'delthresh'
+            delthresh = varargin{i+1};
+            if ~isnumeric(delthresh)
+                error('Incorrect value for property ''delthresh''.');
+            end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -140,6 +148,9 @@ end
 if ~exist('ripthresh','var')
     ripthresh=[4 6;2 5]; % 1st: thresh for absolute detection; 2nd: thresh for rootsquare det. 
 end
+if ~exist('delthresh','var')
+    delthresh=[2 1];
+end
 
 %change directory
 init_directory=pwd;
@@ -165,23 +176,25 @@ for i=1:length(lfp_structures)
         cortical_structures{end+1} = lfp_structures{i};
     end
 end
-
+% temporary fix // cortical need to be fixed to account for specific
+% structure per lfp/probe site
+structure = 'PFCx';
 
 %down states
 if down
     down_structures = cell(0);
     if exist(fullfile(foldername,'SpikeData.mat'), 'file')==2
         %structures with spikes
-        for i=1:length(cortical_structures)
+%         for i=1:length(cortical_structures)
             [NumNeurons, ~, ~] = GetSpikesFromStructure(cortical_structures{i}, 'remove_MUA',1,'verbose',0);
             if ~isempty(NumNeurons)
                 down_structures{end+1} = cortical_structures{i};
             end
-        end
+%         end
         %% Down states
         for i=1:length(down_structures)
 
-            structure = down_structures{i};
+%             structure = down_structures{i};
             
             disp('----------------------------')
             disp('   Detecting down states')
@@ -205,30 +218,33 @@ end
 
 %% Delta waves
 if delta
-    for i=1:length(cortical_structures)
+%     for i=1:length(cortical_structures)
 
-        structure = cortical_structures{i};
+%         structure = cortical_structures{i};
         
         disp('----------------------------')
         disp('   Detecting delta waves')
         disp('----------------------------')
         disp('...')
-
+        
         if or(exist(['ChannelsToAnalyse/' structure '_deep.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_delatdeep.mat'],'file')==2) ...
                 & or(exist(['ChannelsToAnalyse/' structure '_sup.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup.mat'],'file')==2)
-            CreateDeltaWavesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute);
+            CreateDeltaWavesSleep('structure',structure, 'scoring',scoring, ...
+                'recompute',recompute,'thresh',delthresh);
         end
 
         %right and left
         if or(exist(['ChannelsToAnalyse/' structure '_deep_left.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltadeep_left.mat'],'file')==2)...
                 & or(exist(['ChannelsToAnalyse/' structure '_sup_left.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup_left.mat'],'file')==2)
-            CreateDeltaWavesSleep('structure',structure, 'hemisphere','left', 'scoring',scoring, 'recompute',recompute);
+            CreateDeltaWavesSleep('structure',structure, 'hemisphere','left', ...
+                'scoring',scoring, 'recompute',recompute,'thresh',delthresh);
         end
         if or(exist(['ChannelsToAnalyse/' structure '_deep_right.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltadeep_right.mat'],'file')==2) ...
                 & or(exist(['ChannelsToAnalyse/' structure '_sup_right.mat'],'file')==2,exist(['ChannelsToAnalyse/' structure '_deltasup_right.mat'],'file')==2)
-            CreateDeltaWavesSleep('structure',structure, 'hemisphere','right', 'scoring',scoring, 'recompute',recompute);
+            CreateDeltaWavesSleep('structure',structure, 'hemisphere','right', ...
+                'scoring',scoring, 'recompute',recompute,'thresh',delthresh);
         end
-    end
+%     end
     disp('Delta waves detection done')
 end
 
@@ -272,10 +288,10 @@ if spindle
     disp('----------------------------')
     disp('...')
     
-    for i=1:length(cortical_structures)
-        structure = cortical_structures{i};
+%     for i=1:length(cortical_structures)
+%         structure = cortical_structures{i};
         CreateSpindlesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute,'stim',1);
-    end
+%     end
     disp('Spindles detection done')
 end
 

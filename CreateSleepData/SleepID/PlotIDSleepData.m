@@ -46,6 +46,9 @@ end
 
 %% load sleep data
 load IdFigureData 
+% check if sup delta exist
+if~exist('Msup_short_delta','var'), DeltaSup = 0; else DeltaSup = 1; end
+    
 % %sleep scoring bulb
 if strcmpi(scoring,'ob')
 [gamma, theta, SleepEpoch] = MakeIDfunc_ScoringBulb;
@@ -174,8 +177,8 @@ title('Mean spindles signal : -500 +500 ms'), hold on
 axes(AverageDelta_Axes);
 yyaxis left
 plot(Msup_short_delta(:,1),Msup_short_delta(:,2),'--', 'color', 'b'), hold on
-plot(Mdeep_short_delta(:,1),Mdeep_short_delta(:,2),'--', 'color', 'r'), hold on
 plot(Msup_long_delta(:,1),Msup_long_delta(:,2), '-', 'color', 'b'), hold on
+plot(Mdeep_short_delta(:,1),Mdeep_short_delta(:,2),'--', 'color', 'r'), hold on
 plot(Mdeep_long_delta(:,1),Mdeep_long_delta(:,2),'-', 'color', 'r'), hold on
 ylabel('LFP')
 try %MUA average sync
@@ -184,10 +187,10 @@ try %MUA average sync
     plot(Mmua_short_delta(:,1),Mmua_short_delta(:,2),'--', 'color','k'), hold on
     plot(Mmua_long_delta(:,1),Mmua_long_delta(:,2),'-',  'color','k'), hold on
     ylabel('MUA (10s bin)'), ylim([0 maxvalue*3])
-    legend('LFP Sup (short deltas)','LFP deep (short deltas)','LFP Sup (long deltas)','LFP deep (long deltas)','MUA (short deltas)','MUA (long deltas)')
+    legend('LFP Sup (short deltas)','LFP Sup (long deltas)','LFP deep (short deltas)','LFP deep (long deltas)','LFP deep (long deltas)','MUA (short deltas)','MUA (long deltas)')
     title_ax = 'Mean LFP and MUA: averaged on delta waves centers';
 catch
-    legend('LFP Sup (short deltas)','LFP deep (short deltas)','LFP Sup (long deltas)','LFP deep (long deltas)')
+    legend('LFP Sup (short deltas)','LFP Sup (long deltas)','LFP deep (short deltas)','LFP deep (long deltas)')
     title_ax = 'Mean LFP  averaged on delta waves centers';
 end
 

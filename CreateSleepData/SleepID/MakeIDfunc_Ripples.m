@@ -51,7 +51,7 @@ if ~exist('recompute','var')
     recompute=0;
 end
 
-if exist('Ripples.mat','file')~=2
+if exist('SWR.mat','file')~=2 && exist('Ripples.mat','file')~=2
     disp('no ripples here')
     meancurve=[]; nb_ripples=0;
     return
@@ -60,22 +60,34 @@ end
 %exist or load
 if ~exist('LFP_ripples','var')
     %LFP Ripples
-    load('Ripples.mat', 'ripples_Info')
+    try
+        load('SWR.mat')    
+    catch
+        load('Ripples.mat')
+    end
+end
+
+if ~exist('M','var')
     load(['LFPData/LFP' num2str(ripples_Info.channel)])
     LFP_ripples=LFP;
     clear LFP
+
+    %% load ripples
+    [tRipples, ~] = GetRipples('foldername',foldername);
+    ripples_tmp = Range(tRipples)/1e4;
+
+
+    %% Ripples and Spindles
+    meancurve = PlotRipRaw(LFP_ripples, sort(ripples_tmp), binsize, 0, 0); close
+    nb_ripples = length(ripples_tmp);
+else
+    meancurve = M;
+    if exist('ripples','var')
+        nb_ripples = size(ripples,1);
+    else
+        nb_ripples = size(Ripples,1);
+    end
 end
-
-
-%% load ripples
-[tRipples, ~] = GetRipples('foldername',foldername);
-ripples_tmp = Range(tRipples)/1e4;
-
-
-%% Ripples and Spindles
-meancurve = PlotRipRaw(LFP_ripples, sort(ripples_tmp), binsize, 0, 0); close
-nb_ripples = length(ripples_tmp);
-
 end
 
 

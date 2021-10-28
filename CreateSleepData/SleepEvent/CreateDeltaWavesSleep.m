@@ -94,9 +94,9 @@ InputInfo.EventFileName = ['delta_' structure hemisphere];
 % Epoch
 if strcmpi(scoring,'accelero')
     try
-        load SleepScoring_Accelero SWSEpoch TotalNoiseEpoch
+        load SleepScoring_Accelero TotalNoiseEpoch SWSEpoch
     catch
-        load StateEpoch SWSEpoch TotalNoiseEpoch
+        load StateEpoch TotalNoiseEpoch SWSEpoch
         
         try
             TotalNoiseEpoch;
@@ -116,9 +116,9 @@ if strcmpi(scoring,'accelero')
     end
 elseif strcmpi(scoring,'ob')
     try
-        load SleepScoring_OBGamma SWSEpoch TotalNoiseEpoch
+        load SleepScoring_OBGamma TotalNoiseEpoch SWSEpoch
     catch
-        load StateEpochSB SWSEpoch TotalNoiseEpoch
+        load StateEpochSB TotalNoiseEpoch SWSEpoch
     end
     
 end
@@ -193,7 +193,7 @@ if ~isempty(InputInfo.channel_deep) && ~isempty(InputInfo.channel_sup)
     end
     
     %% detect delta waves
-
+    
     %normalize
     clear distance
     k=1;
@@ -210,6 +210,7 @@ if ~isempty(InputInfo.channel_deep) && ~isempty(InputInfo.channel_sup)
     
     %resample & filter & positive value
     EEGsleepDiff = ResampleTSD(tsd(Range(LFPdeep),Data(LFPdeep) - Factor*Data(LFPsup)),100);
+    EEGsleepDiff = Restrict(EEGsleepDiff,SWSEpoch-TotalNoiseEpoch);
     Filt_diff = FilterLFP(EEGsleepDiff, InputInfo.freq_delta, 1024);
     pos_filtdiff = max(Data(Filt_diff),0);
     %stdev

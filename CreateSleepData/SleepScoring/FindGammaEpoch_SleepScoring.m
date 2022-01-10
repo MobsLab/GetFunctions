@@ -11,6 +11,8 @@
 % channel_bulb      : OB channel
 % minduration       : minimal duration  of sleep epochs
 % foldername        : location of data & save location
+%       - controlepoch  IntervalSet (1 start time, 1 end time) of epoch
+%                       for mean and std value (gamma and theta)
 %
 %
 %%OUTPUT
@@ -24,7 +26,7 @@
 %
 
 
-function [SleepEpoch, SmoothGamma, Info] = FindGammaEpoch_SleepScoring(Epoch, channel_bulb, minduration, varargin)
+function [SleepEpoch,SmoothGamma,Info,microWakeEpoch,microSleepEpoch] = FindGammaEpoch_SleepScoring(Epoch, channel_bulb, minduration, varargin)
 
 %% Initiation
 if nargin < 3
@@ -49,9 +51,15 @@ for i = 1:2:length(varargin)
             StimEpoch = (varargin{i+1});
         case 'predefinegammathresh'
             UserGammaThresh = (varargin{i+1});
+        case 'controlepoch'
+            ControlEpoch = varargin{i+1};
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
+end
+% fill ControlEpoch
+if ~exist('ControlEpoch','var')
+    ControlEpoch=[];
 end
 
 %check if exist and assign default value if not
@@ -69,10 +77,13 @@ end
 load(strcat([foldername,'LFPData/LFP',num2str(channel_bulb),'.mat']));
 Time = Range(LFP);
 TotalEpoch = intervalSet(Time(1),Time(end));
+
+% restrict LFP
+% stim
 if exist('StimEpoch')
     LFP = Restrict(LFP,TotalEpoch-StimEpoch);
 end
-
+    
 % params
 try
     smootime;
@@ -94,20 +105,33 @@ tEnveloppeGamma = tsd(Range(LFP), abs(hilbert(Data(FilGamma))) ); %tsd: hilbert 
 % gamma_high = Restrict(tEnveloppeGamma, Epoch); % restrict
 
 % smooth gamma power
-SmoothGamma = tsd(Range(tEnveloppeGamma), runmean(Data(tEnveloppeGamma), ceil(smootime/median(diff(Range(tEnveloppeGamma,'s'))))));
+SmoothGamma = tsd(Range(tEnveloppeGamma), runmean(Data(tEnveloppeGamma), ...
+    ceil(smootime/median(diff(Range(tEnveloppeGamma,'s'))))));
+
 
 % get gamma threshold
 if exist('UserGammaThresh','var')
     gamma_thresh = UserGammaThresh;
 else
-    gamma_thresh = GetGammaThresh(Data(Restrict(SmoothGamma,Epoch)), user_confirmation);
+    if ~isempty(ControlEpoch)
+        gamma_thresh = GetGammaThresh(Data(Restrict(Restrict(SmoothGamma,Epoch),ControlEpoch)), user_confirmation);
+    else
+        gamma_thresh = GetGammaThresh(Data(Restrict(SmoothGamma,Epoch)), user_confirmation);
+    end
     gamma_thresh = exp(gamma_thresh);
 end
 
 % define sleep epoch
-SleepEpoch = thresholdIntervals(SmoothGamma, gamma_thresh, 'Direction','Below');
-SleepEpoch = mergeCloseIntervals(SleepEpoch, minduration*1e4);
+SleepEpoch_all = thresholdIntervals(SmoothGamma, gamma_thresh, 'Direction','Below');
+SleepEpoch = mergeCloseIntervals(SleepEpoch_all, minduration*1e4);
 SleepEpoch = dropShortIntervals(SleepEpoch, minduration*1e4);
+
+% defining micro wake and sleep (< 3s; added by SL: 2021-05;2021-10 (3s instead of 2s))
+SleepEpoch_drop = dropShortIntervals(and(SleepEpoch_all,SleepEpoch), 3*1e4);
+microWakeEpoch = SleepEpoch - SleepEpoch_drop;
+Wake_all = Epoch-SleepEpoch;
+Wake_drop = dropShortIntervals(Wake_all, 3*1e4);
+microSleepEpoch = Wake_all - Wake_drop;
 
 % SB 18/05/2018: Restrict to Epoch to get rid of noise --> we revoked this
 % decision
@@ -117,6 +141,7 @@ SleepEpoch = dropShortIntervals(SleepEpoch, minduration*1e4);
 Info.gamma_thresh      = gamma_thresh;
 Info.gamma_minduration = minduration;
 Info.gamma_OB_channel  = channel_bulb;
+if ~isempty(ControlEpoch), Info.controlepoch = 'yes'; end
 
 
 end

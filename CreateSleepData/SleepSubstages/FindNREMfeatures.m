@@ -5,7 +5,7 @@
 %
 %%INPUTS
 % scoring (optional):   method used to distinguish sleep from wake
-%                         'accelero' or 'OB'; default is 'accelero'
+%                         'accelero' or 'OB'; default is 'ob'
 %
 %%OUTPUT
 % features:
@@ -101,11 +101,9 @@ if exist('ChannelsToAnalyse/PFCx_sup.mat','file')==2
         load('ChannelsToAnalyse/PFCx_deltasup.mat');
         channel_sup = channel;
     end
-elseif exist('ChannelsToAnalyse/PFCx_deltasup.mat','file')==2
+else 
     load('ChannelsToAnalyse/PFCx_deltasup.mat');
     channel_sup = channel;
-else
-    channel_sup = -1;
 end
 clear channel
 
@@ -114,13 +112,9 @@ eval(['load LFPData/LFP',num2str(channel_deep)])
 LFPdeep=LFP;
 [deep_OsciEpochSleep]=FindOsciEpochs(LFPdeep,EpochSleep);
 
-if channel_sup >= 0
-    eval(['load LFPData/LFP',num2str(channel_sup)])
-    LFPsup=LFP;
-    [sup_OsciEpochSleep]=FindOsciEpochs(LFPsup,EpochSleep);
-else
-    sup_OsciEpochSleep=intervalSet([],[]);
-end
+eval(['load LFPData/LFP',num2str(channel_sup)])
+LFPsup=LFP;
+[sup_OsciEpochSleep]=FindOsciEpochs(LFPsup,EpochSleep);
 
 %spindles
 try

@@ -125,8 +125,8 @@ for tet_num=1:max(AllSpikeData(:,2))
                 for elec=1:size(tempW{count_all_units},2)
                     W{count_all_units}(elec,:) = mean(squeeze(tempW{count_all_units}(:,elec,:)));
                 end
-                % quality of sorting
-                % Changed by Dima 29.03.2019 to put NANs in MUA quality
+%                 quality of sorting
+%                 Changed by Dima 29.03.2019 to put NANs in MUA quality
                 if length(UnitNums)~=length(LRatio)
                     if UnitNums(unit_num) == 1
                         % First is MUA

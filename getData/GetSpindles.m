@@ -78,14 +78,22 @@ end
     
 
 %% Get Spindles
-if exist(fullfile(foldername,'Spindles.mat'), 'file')==2
+if exist(fullfile(foldername,'Spindles.mat'), 'file')==2 || exist(fullfile(foldername,'sSpindles.mat'), 'file')==2
     if ~isempty(sptype)
         varname = ['spindles_' sptype '_' area];
     else
-        varname = ['spindles_' area];
+%         varname = ['spindles_' area];
+        try
+            varname = ['Spindles'];
+        catch
+            varname = ['spindles_' area];
+        end
     end
-    
-    a = load(fullfile(foldername,'Spindles.mat'), varname);    
+    try
+        a = load(fullfile(foldername,'sSpindles.mat'), varname);    
+    catch
+        a = load(fullfile(foldername,'Spindles.mat'), varname);    
+    end
     
     if isfield(a,varname)
         % the old version
@@ -102,10 +110,18 @@ if exist(fullfile(foldername,'Spindles.mat'), 'file')==2
             varname = ['tSpindles_' area];
             varnameEp = ['SpindlesEpoch_' area];
         end
-        a = load(fullfile(foldername,'Spindles.mat'), varname,varnameEp);
-        tSpindles = a.(varname);
-        SpindlesEpoch = a.(varnameEp);
-
+        try
+            a = load(fullfile(foldername,'sSpindles.mat'), varname,varnameEp,'tSpindles','SpindlesEpoch');
+        catch
+            a = load(fullfile(foldername,'Spindles.mat'), varname,varnameEp,'tSpindles','SpindlesEpoch');
+        end
+        try
+            tSpindles = a.(varname);
+            SpindlesEpoch = a.(varnameEp);
+        catch % if no PFCx label
+            tSpindles = a.tSpindles;
+            SpindlesEpoch = a.SpindlesEpoch;
+        end
     end
 
 else

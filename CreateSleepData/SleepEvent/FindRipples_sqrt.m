@@ -31,6 +31,7 @@ function [ripples,stdev] = FindRipples_sqrt (LFP_rip, LFP_noise, Epoch, thresh, 
 %     'durations'           min inter-ripple interval & min and max ripple duration, in ms
 %                           (default = [15 20 200])
 %     'clean'               get rid of significant noise artefact (default = 1)
+%     'restrict'            interval used to compute normalization (default = all)
 %
 % =========================================================================
 % OUTPUT:
@@ -84,7 +85,15 @@ for i = 1:2:length(varargin)
             if isdscalar(clean,'==0','==1')
                 error('Incorrect value for property ''clean'' (type ''help <a href="matlab:help FindRipples">FindRipples</a>'' for details).');
             end
+        case {'restrict'}
+			restrict = varargin{i+1};
+			if ~isempty(restrict) & ~isdvector(restrict,'#2','<'),
+				error('Incorrect value for property ''restrict'' (type ''help <a href="matlab:help FindRipples">FindRipples</a>'' for details).');
+			end
     end
+end
+if ~exist('restrict','var')
+    restrict=0;
 end
 
 %check if exist and assign default value if not
@@ -157,17 +166,38 @@ end
 %% Find Ripples
 if rmvnoise
     if ~isempty(sd)
-        [ripples, stdev,~] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur,...
-            'stdev', sd, 'noise',[NoiseTime NoiseData]);
+        if ~restrict
+            [ripples, stdev,~] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur,...
+                'stdev', sd, 'noise',[NoiseTime NoiseData]);
+        else
+            [ripples, stdev,~] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur,...
+                'stdev', sd, 'noise',[NoiseTime NoiseData],'restrict',restrict);
+        end
     else
-        [ripples, stdev,~] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur,...
-            'noise',[NoiseTime NoiseData]);
+        if ~restrict
+            [ripples, stdev,~] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur,...
+                'noise',[NoiseTime NoiseData]);
+        else
+            [ripples, stdev,~] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur,...
+                'noise',[NoiseTime NoiseData],'restrict',restrict);
+        end
     end
 else
     if ~isempty(sd)
-        [ripples,stdev] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur, 'stdev', sd);
+        if ~restrict
+            [ripples,stdev] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur, ...
+                'stdev', sd);
+        else
+            [ripples,stdev] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur, ...
+                'stdev', sd,'restrict',restrict);
+        end
     else
-        [ripples,stdev] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur);
+        if ~restrict
+            [ripples,stdev] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur);
+        else
+            [ripples,stdev] = FindRipples_zug([GoodTime GoodData], 'thresholds',thresh,'durations',dur, ...
+                'restrict',restrict);
+        end
     end
 end
 

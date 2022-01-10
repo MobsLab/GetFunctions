@@ -251,16 +251,19 @@ disp(['  Step 6: After removing events below 2nd threshold: ' num2str(length(Sta
 %% Extracting chracteristics
 % find peak-to-peak amplitude
 func_amp = @(a) measureOnSignal(a,'amplitude_p2p');
-[amp, ~, ~] = functionOnEpochs(FiltLFP, FinalRipplesEpoch, func_amp);
+if not(isempty(Start(FinalRipplesEpoch))) % add by BM on 03/01/2022
+    [amp, ~, ~] = functionOnEpochs(FiltLFP, FinalRipplesEpoch, func_amp);
+end
 
 % Detect instantaneous frequency Model 1
 st_ss = Start(FinalRipplesEpoch);
 en_ss = Stop(FinalRipplesEpoch);
-freq = zeros(length(st_ss),1);
+freq = zeros(length(st_ss),1); % modified by BM on 17/12/2021 based on KB advices
 for i=1:length(st_ss)
-	peakIx = LocalMinima(Data(Restrict(FiltLFP,intervalSet(st_ss(i),en_ss(i)))),4,0);
+	%peakIx = LocalMinima(Data(Restrict(FiltLFP,intervalSet(st_ss(i),en_ss(i)))) , 4 ,0); 
+	peakIx = LocalMaxima(resample(Data(Restrict(FiltLFP,intervalSet(st_ss(i),en_ss(i)))) , 30 , 1) , 4 ,0); % resample ripples data to be 30 times more detailed, find maxima rather than minima where spikes are
     if ~isempty(peakIx)
-        freq(i) = frequency/median(diff(peakIx));
+        freq(i) = frequency/(median(diff(peakIx))/30);
     end
 end
 % % Detect instantaneous frequency Model 2

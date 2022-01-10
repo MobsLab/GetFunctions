@@ -156,7 +156,7 @@ end
 %% CLASSIFICATION OF UNITS
 % Cluster
 rmpath(fullfile(DropBoxLocation,'PrgMatlab/Fra/UtilsStats'));
-AllParams = ([WFInfo.HalfAmpDur/range(WFInfo.HalfAmpDur);WFInfo.Assymetry/range(WFInfo.Assymetry);WFInfo.TroughToPeakTime/range(WFInfo.TroughToPeakTime)]');
+AllParams = ([WFInfo.HalfAmpDur/range(WFInfo.HalfAmpDur); WFInfo.Assymetry/range(WFInfo.Assymetry); WFInfo.TroughToPeakTime/range(WFInfo.TroughToPeakTime)]');
 NeuronClassif = kmeans(AllParams,2);
 addpath(fullfile(DropBoxLocation,'PrgMatlab/Fra/UtilsStats'));
 

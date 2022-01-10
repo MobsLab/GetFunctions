@@ -83,8 +83,8 @@ end
 scrsz = get(0,'ScreenSize');
 
 % params
-HighNoiseThresh = 3E5; % default value for power 18-20Hz
-GndNoiseThresh = 0.4E6; % default value for power <2Hz
+HighNoiseThresh = 3E4; % default value for power 18-20Hz
+GndNoiseThresh = 3E6; % default value for power <2Hz
 
 % Get HPC spectrum
 if ~(exist([foldername '/' 'H_Low_Spectrum.mat'], 'file') == 2)
@@ -143,6 +143,11 @@ end
 %% Low frequency noise - generally grounding problem
 
 % Stim
+% -------------------------------------------------------------
+% In case there is an issue with the stim digital channel,
+% false stim will be treated as noise. Comment the IF section below 
+% and make sure to set StimNoiseEpoch to intervalSet([],[]);
+
 if exist('behavResources.mat')>0
     load('behavResources.mat','TTLInfo');
     
@@ -157,8 +162,10 @@ if exist('behavResources.mat')>0
     end
 else
     StimNoiseEpoch= intervalSet([],[]);
-    
 end
+
+% StimNoiseEpoch= intervalSet([],[]);
+% ----------------------------------------------------------
 
 Ok_LowFreq='n';
 while ~strcmpi(Ok_LowFreq,'y')
@@ -225,6 +232,7 @@ if strcmpi(Do_Thresh,'y')
             % check if user is satisfied or wants to redefine
             Ok_Thresh=input('--- Are you satisfied with Thresholded Noise Epochs (y/n -- k for keyboard)? ','s');
             if Ok_Thresh=='k'
+                disp('Type "dbcont" to continue...')
                 keyboard
             end
         else

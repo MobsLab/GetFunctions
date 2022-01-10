@@ -12,7 +12,8 @@
 %
 
 
-function [ImmobilityEpoch, MovementEpoch, tsdMovement, Info] = FindMovementAccelero_SleepScoring(varargin)
+function [ImmobilityEpoch,MovementEpoch,tsdMovement,Info,microWakeEpoch,microSleepEpoch] = ...
+    FindMovementAccelero_SleepScoring(Epoch,varargin)
 
 % Parse parameter list
 for i = 1:2:length(varargin)
@@ -66,6 +67,8 @@ catch
     MovementEpoch = [];
     tsdMovement = [];
     Info = [];
+    microWakeEpoch = [];
+    microSleepEpoch = [];
     return
 end
 
@@ -106,15 +109,15 @@ while scoring_ok~='y'
     MovementEpoch = dropShortIntervals(MovementEpoch, mov_dropmerge(1)*1E4);
 
     %epoch of immobility (merge & drop)
-    ImmobilityEpoch = thresholdIntervals(tsdMovement, mov_threshold, 'Direction','Below');
-    ImmobilityEpoch = dropShortIntervals(ImmobilityEpoch, immob_dropmerge(1)*1E4); 
+    ImmobilityEpoch_all = thresholdIntervals(tsdMovement, mov_threshold, 'Direction','Below');
+    ImmobilityEpoch = dropShortIntervals(ImmobilityEpoch_all, immob_dropmerge(1)*1E4); 
     ImmobilityEpoch = mergeCloseIntervals(ImmobilityEpoch, immob_dropmerge(2)*1E4);        
     ImmobilityEpoch = ImmobilityEpoch-and(MovementEpoch, ImmobilityEpoch);
     ImmobilityEpoch = dropShortIntervals(ImmobilityEpoch, immob_dropmerge(1)*1E4);
 
+    
 
-
-    %% plot for manuakl checking
+    %% plot for manual checking
     figure('Name','Movement threshold', 'color',[1 1 1]);
     plot(Range(tsdMovement,'s'), Data(tsdMovement)); 
     ylim([0  max(Data(tsdMovement))])
@@ -139,7 +142,8 @@ while scoring_ok~='y'
 
     % if 'no' or 'manual' 
     if scoring_ok=='n'
-        mov_threshold=input(['   threshold for movement (Default= ',sprintf('%1.1E',nanmean(Data(tsdMovement))+2*nanstd(Data(tsdMovement))),') : ']);
+%         mov_threshold=input(['   threshold for movement (Default= ',sprintf('%1.1E',nanmean(Data(tsdMovement))+2*nanstd(Data(tsdMovement))),') : ']);
+        mov_threshold=input(['   threshold for movement (Default or last input = ' num2str(mov_threshold) ') : ']);
     elseif scoring_ok=='m'
         disp('Define Immobility period on figure by hand.');
         ImmobilityEpoch = ginput;
@@ -160,6 +164,13 @@ while scoring_ok~='y'
         ImmobilityEpoch = intervalSet(ImmobilityEpoch(1:2:end,1),ImmobilityEpoch(2:2:end,1)); 
     end
 end
+
+% defining micro wake (< 2s) during sleep (added by SL: 2021-05)
+SleepEpoch_drop = dropShortIntervals(and(ImmobilityEpoch_all,ImmobilityEpoch), 2*1e4);
+microWakeEpoch = ImmobilityEpoch - SleepEpoch_drop;
+Wake_all = Epoch-ImmobilityEpoch;
+Wake_drop = dropShortIntervals(Wake_all, 2*1e4);
+microSleepEpoch = Wake_all - Wake_drop;
 
 %Info
 Info.immob_dropmerge = immob_dropmerge;

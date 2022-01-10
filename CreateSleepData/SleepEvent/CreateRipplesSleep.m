@@ -37,19 +37,16 @@ function RipplesEpoch = CreateRipplesSleep(varargin)
 %                                                           default 'ob'
 %       recompute           recompute detection (0 or 1)
 %                                                           default: 1
-%       stim                stimulations artefact? (0 or 1)
-%                                                           default: 0
-%       down                process down states detection (0 or 1)
-%                                                           default: 1
-%       delta               process delta waves detection (0 or 1)
-%                                                           default: 1
-%       rip                 process ripples detection (0 or 1)
-%                                                           default: 1
-%       spindle             process spindles detection (0 or 1)
-%                                                           default: 1
-%       ripthresh           set specific threshold for ripples
+%       save_data           save result into SWR.mat
+%       thresh              set specific threshold for ripples
 %                           [absolute detection; rootsquare det.]
 %                                                           default: [4 6; 2 5] 
+%       stim                set to 1 if stimulation are present (will
+%                           clean). 0 if none (default)
+%       rmvnoise            remove false ripples using non-ripples channel
+%       plotavg             plot average figure
+%       restrict            restrict to SWS epoch to calculate mean and std
+%                           parameters
 %
 % =========================================================================
 % OUTPUT:
@@ -120,7 +117,11 @@ for i = 1:2:length(varargin)
             if plotavg~=0 && plotavg ~=1
                 error('Incorrect value for property ''plotavg''.');
             end
-            
+        case 'restrict'
+            restrict = varargin{i+1};
+            if restrict~=0 && restrict ~=1
+                error('Incorrect value for property ''restrict''.');
+            end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -162,6 +163,9 @@ end
 if ~exist('plotavg','var')
     plotavg=1;
 end
+if ~exist('restrict','var')
+    restrict=0;
+end
 
 % params
 Info.hemisphere = hemisphere;
@@ -185,10 +189,10 @@ end
 % -------------------------------------------------------------------------
 if strcmpi(scoring,'accelero')
     try
-        load SleepScoring_Accelero Epoch TotalNoiseEpoch SWSEpoch
+        load SleepScoring_Accelero Epoch TotalNoiseEpoch SWSEpoch Wake
     catch
         try
-            load StateEpoch Epoch TotalNoiseEpoch SWSEpoch
+            load StateEpoch Epoch TotalNoiseEpoch SWSEpoch Wake
         catch
             warning('Please, run sleep scoring before extracting ripples!');
             return
@@ -196,10 +200,10 @@ if strcmpi(scoring,'accelero')
     end
 elseif strcmpi(scoring,'ob')
     try
-        load SleepScoring_OBGamma Epoch TotalNoiseEpoch SWSEpoch
+        load SleepScoring_OBGamma Epoch TotalNoiseEpoch SWSEpoch Wake
     catch
         try
-            load StateEpochSB Epoch TotalNoiseEpoch SWSEpoch
+            load StateEpochSB Epoch TotalNoiseEpoch SWSEpoch Wake
         catch
             warning('Please, run sleep scoring before extracting ripples!');
             return
@@ -230,10 +234,11 @@ clear LFP channel
 %load non-ripple channel
 if rmvnoise
     try
-        load([pwd '/ChannelsToAnalyse/nonHPC.mat'],'channel');
+        load([pwd '/ChannelsToAnalyse/nonRip.mat'],'channel');
     catch
+        disp(pwd) % add by BM on 25/10/2021
         channel = input('Please set a non-ripples channel on HPC: ');
-        save([pwd '/ChannelsToAnalyse/nonHPC.mat'],'channel');
+        save([pwd '/ChannelsToAnalyse/nonRip.mat'],'channel');
     end
     nonRip = channel;
     eval(['load LFPData/LFP',num2str(nonRip)])
@@ -252,7 +257,15 @@ end
 % -------------------------------------------------------------------------
 
 Info.Epoch=Epoch-TotalNoiseEpoch;
-Info.SWSEpoch=Epoch-TotalNoiseEpoch;
+if restrict
+    Info.Restrict = SWSEpoch;
+    % Get longest epoch of sws start and stop times (for zug)
+    [~,idx]=max(End(SWSEpoch)-Start(SWSEpoch));
+    tsws(1) = Start(subset(SWSEpoch,idx))/1e4;
+    tsws(2) = End(subset(SWSEpoch,idx))/1e4;
+else
+    Info.Restrict = Info.Epoch;
+end
 
 % Step 1: detect using LFP's absolute value
 disp('----------------------------------------')
@@ -260,7 +273,7 @@ disp(' ')
 disp('Detecting using absolute value of the LFP')
 disp(' ')
 [ripples_abs, meanVal, stdVal] = FindRipples_abs(HPCrip, HPCnonRip, ...
-    Info.Epoch, Info.SWSEpoch,'frequency_band',Info.frequency_band, ...
+    Info.Epoch, Info.Restrict,'frequency_band',Info.frequency_band, ...
     'threshold',Info.threshold(1,:),'durations',Info.durations,'stim',stim);
 
 % Step 2: detect using LFP's square root 
@@ -268,7 +281,13 @@ disp('----------------------------------------')
 disp(' ')
 disp('Detecting using root-square value of the LFP')
 disp(' ')
-[ripples_sqrt,stdev] = FindRipples_sqrt(HPCrip, HPCnonRip, Info.Epoch, Info.threshold(2,:),'clean',1);
+if restrict
+    [ripples_sqrt,stdev] = FindRipples_sqrt(HPCrip, HPCnonRip, Info.Epoch, Info.threshold(2,:), ...
+        'clean',1,'restrict',tsws);
+else
+    [ripples_sqrt,stdev] = FindRipples_sqrt(HPCrip, HPCnonRip, Info.Epoch, Info.threshold(2,:), ...
+        'clean',1);
+end
 
 % Step 3: merge results
 disp('----------------------------------------')
@@ -306,15 +325,15 @@ ripples_tmp = [ripples_sqrt([id{1}'; id{2}'],:); ripples_abs(id{3}',:)];
 ripples = ripples_tmp(idx,:);   % sort the whole matrix using the sort indices
 
 % saving final results
-ripples_Info.results.common = length(id{1});
-ripples_Info.results.sqrt_only = length(id{2});
-ripples_Info.results.abs_only = length(id{3});
-ripples_Info.results.total = size(ripples,1);
+Info.results.common = length(id{1});
+Info.results.sqrt_only = length(id{2});
+Info.results.abs_only = length(id{3});
+Info.results.total = size(ripples,1);
 
 % display final results
 disp('----------------------------------------')
 disp(['SquareRoot ripples only: ' num2str(length(id{2}))])
-disp(['Absosulte ripples only : ' num2str(length(id{3}))])
+disp(['Absolute ripples only : ' num2str(length(id{3}))])
 disp(['Common ripples count   : ' num2str(length(id{1}))])
 disp('----------------------------------------')
 disp(['RIPPLES FINAL TOTAL    : ' num2str(size(ripples,1))])
@@ -392,6 +411,10 @@ if plotavg
     print('-dpng','Rippleraw','-r300');
     close(gcf);
     save('SWR.mat','M','T','-append');
+
+try % add by BM on 03/01/2022
+    Ripples_IDFigure(ripples,T,RipplesEpoch,Epoch,SWSEpoch,Wake)
+end
 
     % plot average ripple
     supertit = ['Average ripple'];

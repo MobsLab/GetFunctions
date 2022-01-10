@@ -287,12 +287,11 @@ st_ss = ripples(:,1)*1E4;
 en_ss = ripples(:,3)*1E4;
 freq = zeros(length(st_ss),1);
 for i=1:length(st_ss)
-	peakIx = LocalMinima(Data(Restrict(FiltLFP,intervalSet(st_ss(i),en_ss(i)))),4,0);
+    peakIx = LocalMaxima(resample(Data(Restrict(FiltLFP,intervalSet(st_ss(i),en_ss(i)))) , 30 , 1) , 4 ,0); % resample ripples data to be 30 times more detailed, find maxima rather than minima where spikes are
     if ~isempty(peakIx)
-        freq(i) = frequency/median(diff(peakIx));
+        freq(i) = frequency/(median(diff(peakIx))/30);
     end
-end 
-
+end
 % add duration, frequency and peak amplitude (normalized peak amplitude is discarded)
 if not(isempty(Start(FinalRipplesEpoch)))
     ripples(:,4) = Stop(FinalRipplesEpoch,'ms')-Start(FinalRipplesEpoch,'ms');

@@ -29,6 +29,9 @@ for i = 1:2:length(varargin)
             if recompute~=0 && recompute ~=1
                 error('Incorrect value for property ''recompute''.');
             end
+        case 'binsize'
+            binsize = varargin{i+1};
+
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -41,8 +44,10 @@ end
 if ~exist('recompute','var')
     recompute=0;
 end
+if ~exist('binsize','var')
+    binsize=500; %50ms
+end
 %params
-binsize=500; %50ms
 
 %% load
 load('SleepSubstages', 'Epoch', 'NameEpoch')

@@ -39,6 +39,9 @@ function [lfp_structures, cortical_structures] = CreateSleepSignals(varargin)
 %                                                       default: [4 6; 2 5] 
 %       delthresh           set specific threshold for deltas
 %                                                       default: [2 1] 
+%       spithresh           set specific threshold for spindles
+%                           [absolute detection; rootsquare det.]
+%                                                       default: [2 3; 3 5] 
 %
 % =========================================================================
 % OUTPUT:
@@ -114,6 +117,16 @@ for i = 1:2:length(varargin)
             if ~isnumeric(delthresh)
                 error('Incorrect value for property ''delthresh''.');
             end
+        case 'spithresh'
+            spithresh = varargin{i+1};
+            if ~isnumeric(spithresh)
+                error('Incorrect value for property ''spithresh''.');
+            end
+        case 'restrict'
+            restrict = varargin{i+1};
+            if restrict~=0 && restrict ~=1
+                error('Incorrect value for property ''restrict''.');
+            end
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -146,11 +159,18 @@ if ~exist('spindle','var')
     spindle=1;
 end
 if ~exist('ripthresh','var')
-    ripthresh=[4 6;2 5]; % 1st: thresh for absolute detection; 2nd: thresh for rootsquare det. 
+    ripthresh=[4 6; 2 5]; % 1st: thresh for absolute detection; 2nd: thresh for rootsquare det. 
 end
 if ~exist('delthresh','var')
     delthresh=[2 1];
 end
+if ~exist('spithresh','var')
+    spithresh=[2 3; 3 5]; % 1st: thresh for absolute detection; 2nd: thresh for rootsquare det. 
+end
+if ~exist('restrict','var')
+    restrict=0;
+end
+
 
 %change directory
 init_directory=pwd;
@@ -158,6 +178,31 @@ cd(foldername);
 
 
 %% Find structures
+if strcmpi(scoring,'accelero')
+    try
+        load SleepScoring_Accelero Epoch TotalNoiseEpoch
+    catch
+        try
+            load StateEpoch Epoch TotalNoiseEpoch
+        catch
+            warning('Please, run sleep scoring before extracting deltas!');
+            return
+        end
+    end
+elseif strcmpi(scoring,'ob')
+    try
+        load SleepScoring_OBGamma Epoch TotalNoiseEpoch
+    catch
+        try
+            load StateEpochSB Epoch TotalNoiseEpoch
+        catch
+            warning('Please, run sleep scoring before extracting deltas!');
+            return
+        end
+    end
+    
+end
+
 load('LFPData/InfoLFP.mat');
 
 %LFP structures
@@ -258,7 +303,8 @@ if rip
     disp('...')
     
     if exist('ChannelsToAnalyse/dHPC_rip.mat','file')==2 || exist('ChannelsToAnalyse/dHPC_deep.mat','file')==2
-        CreateRipplesSleep('scoring',scoring, 'recompute',recompute,'thresh',ripthresh,'stim',stim);
+        CreateRipplesSleep('scoring',scoring, 'recompute',recompute, ...
+            'thresh',ripthresh,'stim',stim,'restrict',restrict);
     else
         disp('no HPC channel');
     end
@@ -266,13 +312,15 @@ if rip
     if exist('ChannelsToAnalyse/dHPC_rip_left.mat','file')==2
         load('ChannelsToAnalyse/dHPC_rip_left.mat','channel')
         if ~isempty(channel)
-            CreateRipplesSleep('scoring',scoring, 'recompute',recompute,'thresh',ripthresh)
+            CreateRipplesSleep('scoring',scoring, 'recompute',recompute, ...
+            'thresh',ripthresh,'restrict',restrict);
         end
     end
     if exist('ChannelsToAnalyse/dHPC_rip_right.mat','file')==2
          load('ChannelsToAnalyse/dHPC_rip_right.mat','channel')
         if ~isempty(channel)
-            CreateRipplesSleep('scoring',scoring, 'recompute',recompute,'thresh',ripthresh)
+            CreateRipplesSleep('scoring',scoring, 'recompute',recompute, ...
+            'thresh',ripthresh,'restrict',restrict);
         end
     end
     disp('Ripples detection done')
@@ -288,11 +336,17 @@ if spindle
     disp('----------------------------')
     disp('...')
     
+    if exist(['ChannelsToAnalyse/' structure '_spindle.mat'],'file')==2
 %     for i=1:length(cortical_structures)
 %         structure = cortical_structures{i};
-        CreateSpindlesSleep('structure',structure, 'scoring',scoring, 'recompute',recompute,'stim',1);
+        CreateSpindlesSleep('structure',structure, 'scoring',scoring, ...
+            'recompute',recompute,'stim',stim,'thresh',spithresh);
 %     end
-    disp('Spindles detection done')
+        disp('Spindles detection done')
+    else
+        disp('No spindle channel. Skipped.')
+    end
+    
 end
 
 

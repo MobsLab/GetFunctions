@@ -77,10 +77,18 @@ if ~exist('MUA','var')
     clear ST T
 end
 
-if ~exist('LFPspindles','var') & exist('Spindles.mat','file')==2
+if ~exist('LFPspindles','var') && (exist('Spindles.mat','file')==2 || exist('sSpindles.mat','file')==2)
     %LFP Spindles
-    load('Spindles.mat', 'spindles_PFCx_Info')
-    load(['LFPData/LFP' num2str(spindles_PFCx_Info.channel)],'LFP')
+    try
+        load('sSpindles.mat', 'spindles_Info_PFCx','spindles_Info')
+    catch
+        load('Spindles.mat', 'spindles_PFCx_Info','spindles_Info')
+    end
+    try
+        load(['LFPData/LFP' num2str(spindles_Info_PFCx.channel)],'LFP')
+    catch
+        load(['LFPData/LFP' num2str(spindles_Info.channel)],'LFP')
+    end
     LFPspindles=LFP;
     clear LFP channel
 end
@@ -95,15 +103,15 @@ end
 
 
 %% load
-if exist('Spindles.mat')>0
+if exist('Spindles.mat')>0 || exist('sSpindles.mat')>0
     [tSpindles, ~] = GetSpindles('foldername',foldername,'area','PFCx');
     spindles_tmp = Range(tSpindles)/1e4;
     
-    [tSpindles, ~] = GetSpindles('foldername',foldername,'area','PFCx','spindle_type','high');
-    spindles_high_tmp = Range(tSpindles)/1e4;
-    
-    [tSpindles, ~] = GetSpindles('foldername',foldername,'area','PFCx','spindle_type','low');
-    spindles_low_tmp = Range(tSpindles)/1e4;
+%     [tSpindles, ~] = GetSpindles('foldername',foldername,'area','PFCx','spindle_type','high');
+%     spindles_high_tmp = Range(tSpindles)/1e4;
+%     
+%     [tSpindles, ~] = GetSpindles('foldername',foldername,'area','PFCx','spindle_type','low');
+%     spindles_low_tmp = Range(tSpindles)/1e4;
     
     
     %% Spindles
@@ -125,13 +133,13 @@ if exist('Spindles.mat')>0
     % meancurve.high.deep = PlotRipRaw(LFPdeep, sort(spindles_high_tmp), 500, 0, 0); close
     
     nb_spindle.all = length(spindles_tmp);
-    nb_spindle.low = length(spindles_low_tmp);
-    nb_spindle.high = length(spindles_high_tmp);
+%     nb_spindle.low = length(spindles_low_tmp);
+%     nb_spindle.high = length(spindles_high_tmp);
     
 else
     nb_spindle.all = 0;
-    nb_spindle.low = 0;
-    nb_spindle.high = 0;
+%     nb_spindle.low = 0;
+%     nb_spindle.high = 0;
     meancurve.spindles.mua = [];
     meancurve.spindles.lfp = [];
     meancurve.spindles.deep = [];

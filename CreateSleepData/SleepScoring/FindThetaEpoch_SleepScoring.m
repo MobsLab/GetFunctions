@@ -11,6 +11,9 @@
 % minduration       : minimal duration  of theta epochs
 % channel_HPC       : HPC channel
 % foldername        : location of data & save location
+% continuity        : fix continuity issue within theta/rem epochs
+% controlepoch      : IntervalSet (1 start time, 1 end time) of epoch
+%                     for mean and std value (gamma and theta)
 %
 %
 %OUTPUT
@@ -23,7 +26,7 @@
 %   SleepScoringOBGamma
 %
 
-function [ThetaEpoch, SmoothTheta, ThetaRatioTSD, Info] = FindThetaEpoch_SleepScoring(SleepEpoch, channel_HPC, minduration, varargin)
+function [ThetaEpoch, SmoothTheta, ThetaRatioTSD, Info] = FindThetaEpoch_SleepScoring(SleepEpoch, Epoch, channel_HPC, minduration, varargin)
 
 
 %% Initiation
@@ -48,6 +51,10 @@ for i = 1:2:length(varargin)
             smootime = (varargin{i+1});
         case 'stimepoch'
             StimEpoch = (varargin{i+1});
+        case 'continuity'
+            continuity = (varargin{i+1});
+        case 'controlepoch'
+            ControlEpoch = varargin{i+1};
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -57,10 +64,17 @@ end
 if ~exist('user_confirmation','var')
     user_confirmation=1;
 end
+if ~exist('continuity','var')
+    continuity=0;
+end
 if ~exist('foldername','var')
     foldername = pwd;
 elseif foldername(end)~=filesep
     foldername(end+1) = filesep;
+end
+% fill ControlEpoch
+if ~exist('ControlEpoch','var')
+    ControlEpoch=[];
 end
 
 
@@ -81,7 +95,7 @@ end
 
 %% find theta epochs
 disp(' ');
-disp('... Creating Theta Epochs ');
+disp('  ... Creating Theta Epochs ');
 
 % get instantaneous Theta / delta ratio
 FilTheta = FilterLFP(LFP,[5 10],1024);
@@ -96,19 +110,52 @@ ThetaRatioTSD = tsd(Range(FilTheta), theta_ratio);
 SmoothTheta = tsd(Range(ThetaRatioTSD),runmean(Data(ThetaRatioTSD),ceil(smootime/median(diff(Range(ThetaRatioTSD,'s'))))));
 
 % Get threshold
-log_theta = log(Data(Restrict((SmoothTheta), SleepEpoch)));
+if isempty(ControlEpoch)
+    log_theta = log(Data(Restrict(SmoothTheta,SleepEpoch)));
+else
+    log_theta = log(Data(Restrict(Restrict(SmoothTheta,SleepEpoch),ControlEpoch)));
+end
 theta_thresh = exp(GetThetaThresh(log_theta, 1, user_confirmation));
 
-% defien high theta epochs
+% define high theta epochs
 ThetaEpoch = thresholdIntervals(SmoothTheta, theta_thresh, 'Direction','Above');
+
+disp('----------------------------------')
+disp(' ')
+disp(['Number of epochs after high thresholding:                ' num2str(length(Start(ThetaEpoch)))])
+
+% ---- section added to fix REM continuity issues --------
+% 2021-04 by SL
+if continuity
+    ThetaEpoch = dropShortIntervals(ThetaEpoch, 2*1E4);
+    disp('     --- Fixing continuity issues ---')
+    LongThetaEpoch = mergeCloseIntervals(ThetaEpoch,minduration*5*1E4); % long merge
+    disp(['     Number of epochs after long merge:                   ' num2str(length(Start(LongThetaEpoch)))])
+    %nonThetaEpoch = thresholdIntervals(Restrict(SmoothTheta,LongThetaEpoch), theta_thresh/2, 'Direction','Below'); % 2nd thresh 
+    tmean = mean(Data(Restrict(SmoothTheta,SleepEpoch)));% find averaged theta
+    nonThetaEpoch = thresholdIntervals(Restrict(SmoothTheta,LongThetaEpoch), ...
+        theta_thresh-(tmean/2), 'Direction','Below'); % 2nd thresh 
+    ThetaEpoch = mergeCloseIntervals(LongThetaEpoch-nonThetaEpoch, minduration*1E4);
+    disp(['     Number of epochs after removal of non-theta epochs:  ' num2str(length(Start(ThetaEpoch)))])
+    ThetaEpoch = dropShortIntervals(ThetaEpoch, minduration*1E4);
+    disp(['     Number of epochs after removal of short intervals:   ' num2str(length(Start(ThetaEpoch)))])
+else
+    disp('      Warning: not fixing continuity issues. ')
+    disp('      To fix such issues relaunch the function including ''continuity'',''1'' as parameters')
+end
+disp(' ')
+disp('----------------------------------')
+% -------------------------------------------------------
+
 ThetaEpoch = mergeCloseIntervals(ThetaEpoch, minduration*1E4);
 ThetaEpoch = dropShortIntervals(ThetaEpoch, minduration*1E4);
+% update SleepEpoch for added bouts (with continuity)
+SleepEpoch = or(SleepEpoch,ThetaEpoch);
 
 %% generate output
 Info.theta_thresh = theta_thresh;
 Info.theta_mindur = minduration;
 Info.theta_HPC_channel = channel_HPC;
-
-
+if ~isempty(ControlEpoch), Info.controlepoch = 'yes'; end
 
 end

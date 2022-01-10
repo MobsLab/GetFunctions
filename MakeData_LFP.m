@@ -29,7 +29,7 @@ disp('...Creating LFPData.mat')
 try
     for i=1:length(InfoLFP.channel)
         if ~exist(['LFPData/LFP' num2str(InfoLFP.channel(i)) '.mat'],'file') %only LFP signals
-            
+
             disp(['loading and saving LFP' num2str(InfoLFP.channel(i)) ' in LFPData...']);
             % FMA toolbox function to load LFP
             LFP_temp = GetLFP(InfoLFP.channel(i));

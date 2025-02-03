@@ -37,7 +37,12 @@ Colors.Noise = [0 0 0];
 SpecOk.HPC = 0;
 
 % load sleep scoring info
-load([foldername 'SleepScoring_Accelero'])
+
+try
+    load([foldername 'SleepScoring_Accelero'])
+catch
+    load([foldername 'StateEpochSB'])
+end
 
 % load HPC spectrum
 if exist([foldername,'H_Low_Spectrum.mat'])>0
@@ -56,7 +61,13 @@ if exist([foldername,'H_Low_Spectrum.mat'])>0
 end
 
 % theta power : restrict to non-noisy epoch
-SmoothThetaNew = Restrict(SmoothTheta,Epoch);
+
+% try
+    SmoothThetaNew = Restrict(SmoothTheta,Epoch);
+% catch
+%     load('StateEpochSB','SmoothTheta','Epoch')
+%     SmoothThetaNew = Restrict(SmoothTheta,Epoch);
+% end
 
 % gamma and theta power : subsample to same bins
 t = Range(SmoothThetaNew);
@@ -66,7 +77,6 @@ SmoothThetaNew = (Restrict(SmoothThetaNew,ts(ti)));
 % beginning and end of session
 begin = t(1)/3600e4;
 endin = t(end)/3600e4;
-
 
 
 %% Final display
@@ -84,48 +94,97 @@ if SpecOk.HPC
 end
 
 
-% Theta/delta ratio
+% Theta/delta ratio % Décommenté le 31/07/24
 subplot(3,1,2), hold on
 plot(Range(SmoothThetaNew)/3600e4, Data(SmoothThetaNew), 'linewidth',1, 'color','k')
-line([begin endin], [Info.theta_thresh Info.theta_thresh], 'linewidth',1, 'color',[0.7 0.7 0.7])
-xlim([begin endin]), title('Theta/Delta ratio')
+try
+    line([begin endin], [Info.theta_thresh Info.theta_thresh], 'linewidth',1, 'color',[0.7 0.7 0.7])
+catch
+    load('StateEpochSB','Info')
+    line([begin endin], [Info.theta_thresh Info.theta_thresh], 'linewidth',1, 'color',[0.7 0.7 0.7])
+end
+xlim([begin endin]), 
+title('Theta/Delta ratio')
 set(gca,'XTick',[])
 
-% Movement
+% Movement % Décommenté le 31/07/24
 subplot(3,1,3), hold on
 plot(Range(tsdMovement)/3600e4, Data(tsdMovement), 'linewidth',1, 'color','k')
 line([begin endin], [Info.mov_threshold Info.mov_threshold], 'linewidth',1, 'color',[0.7 0.7 0.7])
-xlim([begin endin]), title('Movement')
+xlim([begin endin]), 
+title('Movement')
 
 % Lines to indicate epochs
 for i=2:3
     subplot(3,1,i), hold on
+    
+    if i == 2
+        plot(Range(SmoothThetaNew)/3600e4, Data(SmoothThetaNew), 'linewidth',1, 'color','k')
+        try
+            line([begin endin], [Info.theta_thresh Info.theta_thresh], 'linewidth',1, 'color',[0.7 0.7 0.7])
+        catch
+            load('StateEpochSB','Info')
+            line([begin endin], [Info.theta_thresh Info.theta_thresh], 'linewidth',1, 'color',[0.7 0.7 0.7])
+        end
+        xlim([begin endin]),
+        title('Theta/Delta ratio')
+        set(gca,'XTick',[])
+        
+    elseif i == 3
+        plot(Range(tsdMovement)/3600e4, Data(tsdMovement), 'linewidth',1, 'color','k')
+        line([begin endin], [Info.mov_threshold Info.mov_threshold], 'linewidth',1, 'color',[0.7 0.7 0.7])
+        xlim([begin endin]),
+        title('Movement')
+    end
     yl=ylim;
     LineHeight = yl(2);
     line([begin endin], [LineHeight LineHeight], 'linewidth',10, 'color','w')
-    PlotPerAsLine(REMEpoch, LineHeight, Colors.REM, 'timescaling', 3600e4, 'linewidth',10);
-    PlotPerAsLine(SWSEpoch, LineHeight, Colors.SWS, 'timescaling', 3600e4, 'linewidth',10);
-    PlotPerAsLine(Wake, LineHeight, Colors.Wake, 'timescaling', 3600e4, 'linewidth',10);
-    PlotPerAsLine(TotalNoiseEpoch, LineHeight, Colors.Noise, 'timescaling', 3600e4, 'linewidth',5);
+    
+%     % temporary solution, BM on 22/08/2024
+%     load('SleepScoring_Accelero.mat','Wake','SWSEpoch','REMEpoch')
+%     WakeAcc = Wake;
+%     SWSEpochAcc = SWSEpoch;
+%     REMEpochAcc = REMEpoch;    
+
+try
+    load('SleepScoring_Accelero.mat','Wake','SWSEpoch','REMEpoch')
+    WakeAcc = Wake;
+    SWSEpochAcc = SWSEpoch;
+    REMEpochAcc = REMEpoch;
+catch
+    load('StateEpochSB.mat')
 end
-
-
-suplabel('Sleep scoring with movements (Wake=cyan, SWS=red, REM=green, Noise=black)','t');
-
-%% save figure
-try    
-    res=pwd;
-    cd(foldername);
-    saveas(SleepScoringFigure, 'SleepScoringAccelero.png', 'png');
-    cd(res);
-catch    
-    res=pwd;
-    cd(foldername);
-    saveas(SleepScoringFigure.Number, 'SleepScoringAccelero.png', 'png');
-    cd(res);
-end
-
-
-
+    
+    
+    try % décommenté le 190724 pour check
+        PlotPerAsLine(REMEpochAcc, LineHeight, Colors.REM, 'timescaling', 3600e4, 'linewidth',10);
+        PlotPerAsLine(SWSEpochAcc, LineHeight, Colors.SWS, 'timescaling', 3600e4, 'linewidth',10);
+        PlotPerAsLine(WakeAcc, LineHeight, Colors.Wake, 'timescaling', 3600e4, 'linewidth',10);
+        PlotPerAsLine(TotalNoiseEpoch, LineHeight, Colors.Noise, 'timescaling', 3600e4, 'linewidth',5);
+    catch
+        load('StateEpochSB')
+        PlotPerAsLine(REMEpochAcc, LineHeight, Colors.REM, 'timescaling', 3600e4, 'linewidth',10);
+        PlotPerAsLine(SWSEpochAcc, LineHeight, Colors.SWS, 'timescaling', 3600e4, 'linewidth',10);
+        PlotPerAsLine(WakeAcc, LineHeight, Colors.Wake, 'timescaling', 3600e4, 'linewidth',10);
+        PlotPerAsLine(TotalNoiseEpoch, LineHeight, Colors.Noise, 'timescaling', 3600e4, 'linewidth',5);
+    end
+    
+    
+    suplabel('Sleep scoring with movements (Wake=cyan, SWS=red, REM=green, Noise=black)','t');
+    
+    %% save figure
+    try
+        res=pwd;
+        cd(foldername);
+        saveas(SleepScoringFigure, 'SleepScoringAccelero.png', 'png');
+        cd(res);
+    catch
+        res=pwd;
+        cd(foldername);
+        saveas(SleepScoringFigure.Number, 'SleepScoringAccelero.png', 'png');
+        cd(res);
+    end
+    
+    
 end
 

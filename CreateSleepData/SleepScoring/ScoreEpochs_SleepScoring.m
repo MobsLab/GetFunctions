@@ -5,7 +5,7 @@
 %
 % This function takes as input Sleep and ThetaEpoch to make the final
 % epochs of REM, SWS and Wake
-% 
+%
 %
 %
 %%INPUTS
@@ -20,11 +20,11 @@
 %%OUTPUT
 %
 % REMEpoch          : Intersection of Sleep and ThetaEpoch, drop intervals less than min_duration
-% SWSEpoch          : Sleep that is not REMEpoch, drop very short SWS between REM and Wake 
+% SWSEpoch          : Sleep that is not REMEpoch, drop very short SWS between REM and Wake
 % Wake              : The rest of the session (including noise) that is not Sleep
 %
 %
-%%SEE  
+%%SEE
 %   SleepScoringOBGamma
 %
 
@@ -32,13 +32,18 @@
 function [REMEpoch, SWSEpoch, Wake,REMEpochWiNoise, SWSEpochWiNoise, WakeWiNoise] = ...
     ScoreEpochs_SleepScoring(TotalNoiseEpoch, Epoch, SleepEpoch, ThetaEpoch, minduration,SmoothTheta,Info)
 
-theta_thresh=Info.theta_thresh;
+try
+    theta_thresh=Info.theta_thresh;
+catch
+    load('StateEpochSB.mat', 'Info')
+    theta_thresh=Info.theta_thresh;
+end
 
 %% Definition of vigilance states
 
 % define REM as overlap of sleep and ThetaEpoch that lasts more than 3s
 disp('          ...defining REM')
-REMEpoch = and(SleepEpoch,ThetaEpoch);  
+REMEpoch = and(SleepEpoch,ThetaEpoch);
 REMEpoch = mergeCloseIntervals(REMEpoch,minduration*1e4);
 REMEpoch = dropShortIntervals(REMEpoch,minduration*1e4);
 
@@ -65,7 +70,7 @@ SWS_After_REM = bef_cell{1,2};
 SWS_Bef_Wake = aft_cell{1,2};
 
 if ~isempty(SWS_After_REM) && ~isempty(SWS_Bef_Wake)
-disp('          ...removing short NREM between REM and wake')
+    disp('          ...removing short NREM between REM and wake')
     % remove short episodes of SWS that are between REM and Wake
     SWS_between_REM_Wake = and(SWS_After_REM,SWS_Bef_Wake);
     SWS_to_delete = dropLongIntervals(SWS_between_REM_Wake,minduration*1e4); %episodes to remove from SWS
@@ -88,18 +93,24 @@ if ~isempty(Start(REM_After_Wake))
     tmean = mean(Data(Restrict(SmoothTheta,SleepEpoch)));% find averaged theta
     % get epoch below theta threshold
     noremThetaEpoch = thresholdIntervals(Restrict(SmoothTheta,REM_After_Wake), ...
-        theta_thresh-(tmean/2), 'Direction','Below'); %2nd thresh
+    theta_thresh-(tmean/2), 'Direction','Below'); %2nd thresh
     remThetaEpoch = mergeCloseIntervals(remThetaEpoch-noremThetaEpoch, minduration*1E4);
     remThetaEpoch = dropShortIntervals(remThetaEpoch, minduration*1E4);
-%     SWSEpoch_old = SWSEpoch;
+    
+    %     SWSEpoch_old = SWSEpoch;
     REMEpoch = or((REMEpoch-REM_After_Wake),remThetaEpoch);
-%     % update wake
-%     newSWS = SWSEpoch_old-SWSEpoch;
-%     SWSEpoch = or(newSWS,SWSEpoch);
+    %     % update wake
+    %     newSWS = SWSEpoch_old-SWSEpoch;
+    %     SWSEpoch = or(newSWS,SWSEpoch);
     clear REM_After_Wake bef_cell newSWS
     
     % update SleepEpoch for added bouts (with continuity)
     SleepEpoch = or(SleepEpoch,REMEpoch);
+    %% SB addition for safety  - 07/06/2024
+    
+    SleepEpoch = CleanUpEpoch(SleepEpoch);
+    REMEpoch = CleanUpEpoch(REMEpoch);
+    
     
     % define SWS as sleep that is not REM
     disp('          ...redefining NREM after correction (NREM=Sleep-REM)')
@@ -117,8 +128,8 @@ if ~isempty(Start(REM_After_Wake))
     
 end
 
-%% Sanity checks 
-% There should be no noise during sleep 
+%% Sanity checks
+% There should be no noise during sleep
 [aft_cell,bef_cell] = transEpoch(TotalNoiseEpoch,SWSEpoch);
 nsleep = and(aft_cell{1,2},bef_cell{1,2});
 disp(strcat('          Noise periods during sleep: ',num2str(size(Start(nsleep)/1e4,1))))
@@ -141,7 +152,7 @@ WakeWiNoise = or(Epoch,TotalNoiseEpoch)-SleepEpoch;
 REMEpochWiNoise = REMEpoch;
 SWSEpochWiNoise = SWSEpoch;
 
-% epochs with no noise 
+% epochs with no noise
 REMEpoch = and(REMEpoch, Epoch);
 SWSEpoch = and(SWSEpoch, Epoch);
 Wake = and(Wake, Epoch);

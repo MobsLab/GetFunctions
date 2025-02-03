@@ -35,6 +35,8 @@ for i = 1:2:length(varargin)
             mov_dropmerge = varargin{i+1};
         case 'immob_dropmerge'
             immob_dropmerge = varargin{i+1};
+        case 'resampling'
+            resampling = varargin{i+1};
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -53,7 +55,9 @@ end
 if ~exist('immob_dropmerge','var')
     immob_dropmerge = [10 3]; %DropShortIntervals & mergeCloseIntervals
 end
-
+if ~exist('resampling','var')
+    resampling = 1; %DropShortIntervals & mergeCloseIntervals
+end
 
 %% load
 try
@@ -78,21 +82,13 @@ pasPos=15; %Down sampling position tsd
 
 %% DownSample Position XY
 if ~exist('Mmov','var')
-    data_movement = Data(MovAcctsd);
-    time_movement = Range(MovAcctsd);
-    data_movement = data_movement(1:pasPos:end);
-    time_movement = time_movement(1:pasPos:end);
-    tsdMovement = tsd(time_movement, data_movement);
-
-    Mmov = tsdMovement;
-    % SB removed 01/2019
-%     if exist('StateEpoch.mat','file')==2
-%         save('StateEpoch', 'Mmov','-append'); clear Mmov
-%     else
-%         save('StateEpoch', 'Mmov'); clear Mmov
-%     end
+    %% we have an issue with the negative values no ?? BM on 21/10/2024
+    if resampling
+        tsdMovement =ResampleTSD(MovAcctsd,4);  % modified KB 07/09/2023
+    else
+        tsdMovement = MovAcctsd;
+    end
 end
-    
     
 %% Define immobility period    
 disp('... Creating Immobility and Wake Epochs.');
@@ -104,6 +100,7 @@ manual_scoring = 0; % is it a threshold put manually
 while scoring_ok~='y'
 
     %epoch with movement (merge & drop)
+    
     MovementEpoch = thresholdIntervals(tsdMovement, mov_threshold, 'Direction','Above');
     MovementEpoch = mergeCloseIntervals(MovementEpoch, mov_dropmerge(2)*1E4); 
     MovementEpoch = dropShortIntervals(MovementEpoch, mov_dropmerge(1)*1E4);
@@ -115,21 +112,29 @@ while scoring_ok~='y'
     ImmobilityEpoch = ImmobilityEpoch-and(MovementEpoch, ImmobilityEpoch);
     ImmobilityEpoch = dropShortIntervals(ImmobilityEpoch, immob_dropmerge(1)*1E4);
 
-    
 
     %% plot for manual checking
     figure('Name','Movement threshold', 'color',[1 1 1]);
+    subplot(1,6,1:4),
     plot(Range(tsdMovement,'s'), Data(tsdMovement)); 
     ylim([0  max(Data(tsdMovement))])
     hold on, plot(Range(Restrict(tsdMovement,MovementEpoch),'s'), Data(Restrict(tsdMovement,MovementEpoch)),'c')
     hold on, plot(Range(Restrict(tsdMovement,ImmobilityEpoch),'s'), Data(Restrict(tsdMovement,ImmobilityEpoch)),'r'); 
+    line([0,max(Range(tsdMovement,'s'))],[mov_threshold,mov_threshold], 'color',[0.7 0.7 0.7], 'linewidth',1)
+    
     xlim([0,max(Range(tsdMovement,'s'))]);
 
     try 
         line([Start(TrackingEpoch,'s') Start(TrackingEpoch,'s')], [0 5], 'color','k', 'linewidth',2);
     end
     title('Wake period (blue) and immobility period (Red). Starts Tracking period (black)')
-
+    yl=ylim;
+    subplot(1,6,5), hist(Data(tsdMovement),[0:max(yl)/100:max(yl)]), xlim([0 max(yl)/3])
+    hold on, line([mov_threshold,mov_threshold],ylim, 'color',[0.7 0.7 0.7], 'linewidth',1)
+    [h,b]=hist((Data(tsdMovement)),[0:max(yl)/200:max(yl)]);h(h==0)=min(h>0);
+    subplot(1,6,6), plot(b,log(h),'color','k')
+    hold on, line([mov_threshold,mov_threshold],ylim, 'color',[0.7 0.7 0.7], 'linewidth',1), xlim([0 max(yl)/3])
+    
     %can skip this step if user_confirmation==0
     if user_confirmation
         scoring_ok = input('--- Are you satisfied with the Immobility Epoch (y/n or m for manual) ? ', 's');

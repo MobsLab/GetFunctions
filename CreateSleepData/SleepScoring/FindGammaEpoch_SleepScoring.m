@@ -1,3 +1,4 @@
+
 % FindGammaEpoch_SleepScoringOBGamma
 % 21.11.2017 SB
 %
@@ -53,6 +54,8 @@ for i = 1:2:length(varargin)
             UserGammaThresh = (varargin{i+1});
         case 'controlepoch'
             ControlEpoch = varargin{i+1};
+        case 'frequency'
+            Frequency = varargin{i+1};
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -78,8 +81,7 @@ load(strcat([foldername,'LFPData/LFP',num2str(channel_bulb),'.mat']));
 Time = Range(LFP);
 TotalEpoch = intervalSet(Time(1),Time(end));
 
-% restrict LFP
-% stim
+% restrict LFP - stim
 if exist('StimEpoch')
     LFP = Restrict(LFP,TotalEpoch-StimEpoch);
 end
@@ -91,15 +93,23 @@ catch
     smootime=3;
 end
 
+% add by BM on 06/02/2024
+% choose gamma frequency 
+if ~exist('Frequency','var')
+    Frequency = [50 70];
+    disp('Note, that chosen Gamma frequency is 50-70Hz')
+end
+
+
 
 %% find gamma epochs
 disp(' ');
 disp('... Creating Gamma Epochs ');
 
 % get instantaneous gamma power
-FilGamma = FilterLFP(LFP,[50 70],1024); % filtering
+FilGamma = FilterLFP(LFP,Frequency,1024); % filtering
 tEnveloppeGamma = tsd(Range(LFP), abs(hilbert(Data(FilGamma))) ); %tsd: hilbert transform then enveloppe
-
+  
 % SB 18/05/2018: removed the restrict here so that gamma power is
 % calculated everywhere
 % gamma_high = Restrict(tEnveloppeGamma, Epoch); % restrict

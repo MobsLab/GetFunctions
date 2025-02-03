@@ -62,7 +62,7 @@ end
 % load HPC spectrum
 if exist([foldername,'H_Low_Spectrum.mat'])>0
     load([foldername,'H_Low_Spectrum.mat']);
-    
+
     % make tsd
     sptsdH = tsd(Spectro{2}*1e4,Spectro{1});
     fH = Spectro{3};
@@ -170,7 +170,7 @@ set(gca,'XTick',[],'YTick',[])
 
 % Histogram of theta/delta ratio values
 subplot(6, 12, [21,33,45]), hold on
-[~, rawN, ~] = nhist(log(Data(Restrict(SmoothTheta,Sleep))), 'maxx',max(log(Data(Restrict(SmoothTheta,Sleep)))), 'noerror', 'xlabel','Theta power', 'ylabel',[]); 
+[~, rawN, ~] = nhist(log(Data(Restrict(SmoothTheta,Sleep))), 'maxx',max(log(Data(Restrict(SmoothTheta,Sleep)))), 'noerror', 'xlabel','Theta/Delta power', 'ylabel',[]); 
 axis xy,
 view(90,-90),
 line([log(Info.theta_thresh) log(Info.theta_thresh)],[0 max(rawN)],'linewidth',4,'color','r');

@@ -55,6 +55,8 @@ for i = 1:2:length(varargin)
             continuity = (varargin{i+1});
         case 'controlepoch'
             ControlEpoch = varargin{i+1};
+        case 'frequency'
+            Frequency = varargin{i+1};
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) '''.']);
     end
@@ -81,7 +83,9 @@ end
 % load HPC LFP
 load(strcat([foldername,'LFPData/LFP',num2str(channel_HPC),'.mat']));
 Time = Range(LFP);
-TotalEpoch = intervalSet(Time(1),Time(end));
+% TotalEpoch = intervalSet(Time(1),Time(end));
+TotalEpoch = Epoch; % modif by BM on 20/10/2022
+LFP = Restrict(LFP , TotalEpoch);
 if exist('StimEpoch')
     LFP = Restrict(LFP,TotalEpoch-StimEpoch);
 end
@@ -93,13 +97,23 @@ catch
     smootime=3;
 end
 
+
+% add by BM on 06/02/2024
+% choose gamma frequency 
+if ~exist('Frequency','var')
+    Frequency{1} = [5 10];
+    Frequency{2} = [2 5];
+end
+
+
+
 %% find theta epochs
 disp(' ');
 disp('  ... Creating Theta Epochs ');
 
 % get instantaneous Theta / delta ratio
-FilTheta = FilterLFP(LFP,[5 10],1024);
-FilDelta = FilterLFP(LFP,[2 5],1024);
+FilTheta = FilterLFP(LFP,Frequency{1},1024);
+FilDelta = FilterLFP(LFP,Frequency{2},1024);
 hilbert_theta = abs(hilbert(Data(FilTheta)));
 hilbert_delta = abs(hilbert(Data(FilDelta)));
 hilbert_delta(hilbert_delta<100) = 100;

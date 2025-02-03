@@ -3,7 +3,7 @@
 %
 %  [Epoch,TotalNoiseEpoch,SubNoiseEpoch,Info]=FindNoiseEpoch_SleepScoring(channel_hpc, foldername)
 %
-% This function calculatNaNes noise epochs based on 4 different criteria
+% This function calculates noise epochs based on 4 different criteria
 %   - Noise in the 18-20Hz band
 %   - Ground noise
 %   - User defined threshold on LFP amplitude
@@ -83,7 +83,7 @@ end
 scrsz = get(0,'ScreenSize');
 
 % params
-HighNoiseThresh = 3E4; % default value for power 18-20Hz
+HighNoiseThresh = 3E5; % default value for power 18-20Hz
 GndNoiseThresh = 3E6; % default value for power <2Hz
 
 % Get HPC spectrum
@@ -201,6 +201,7 @@ subplot(4,1,4), hold off,
 % Load HPC data for ploting and thresholding
 load([foldername '/LFPData/LFP' num2str(channel_hpc) '.mat'])
 plot(Range(LFP,'s'),Data(LFP))
+xlim([0 max(Range(LFP,'s'))])
 
 %user confirmation
 if user_confirmation

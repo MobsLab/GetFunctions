@@ -225,6 +225,7 @@ for i = 1:size(secondPass,1)
 end
 if isempty(thirdPass),
 	disp('  Step 3: Peak thresholding failed.');
+    ripples=[]; sd=[]; bad=[]; % add by BM on 25/04/2023
 	return
 else
 	disp(['  Step 3: After peak thresholding: ' num2str(length(thirdPass)) ' events.']);
@@ -280,7 +281,9 @@ FinalRipplesEpoch = intervalSet(ripples(:,1)*1E4,ripples(:,3)*1E4);
 
 % find peak-to-peak amplitude
 func_amp = @(a) measureOnSignal(a,'amplitude_p2p');
-[amp, ~, ~] = functionOnEpochs(FiltLFP, FinalRipplesEpoch, func_amp); %,'uniformoutput',false);
+if ~isempty(Start(FinalRipplesEpoch)) % add by BM on 19/04/2022
+    [amp, ~, ~] = functionOnEpochs(FiltLFP, FinalRipplesEpoch, func_amp); %,'uniformoutput',false);
+end
 
 % Detect instantaneous frequency 
 st_ss = ripples(:,1)*1E4;

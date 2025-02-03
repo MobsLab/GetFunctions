@@ -239,7 +239,7 @@ disp(' ')
 disp('Immobility: DONE')
 disp(' ')
 
-
+% clear
 %% Find Theta epoch
 if doob
     disp(' ')
@@ -291,7 +291,7 @@ if is_accelero
             'foldername', foldername,'smoothwindow', smootime, 'stimepoch', StimEpoch,'continuity',continuity);
     end
     Info_accelero = ConCatStruct(Info_accelero,Info_temp); clear Info_temp;
-else
+else 
     disp(' ')
     disp('------------------------------------------------------------')
     disp(' STEP 5: SKIPPED')
@@ -374,6 +374,7 @@ if PlotFigure==1
             HighSpectrum(foldername,channel_bulb,'B');
         end
     end
+    
     % Make figure
     if exist('dowiob','var')
         if ~dowiob
@@ -394,11 +395,12 @@ end
 disp(' '), disp(' ')
 disp('           SLEEP SCORING COMPLETED')
 disp(' ')
-disp('    "It could be worst, you could be') 
-disp('     studying drosophila" - anonym, 2021')
+disp('    "It could be worse, you could be') 
+disp('     studying drosophila" - anonymous, 2021')
 disp(' ')
 disp('MOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBSMOBS')
 diary off
+% close all
 end
 
 

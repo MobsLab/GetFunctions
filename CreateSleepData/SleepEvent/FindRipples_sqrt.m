@@ -103,13 +103,16 @@ end
 if ~exist('clean','var')
     clean = 1; % Do we need to calculate noise on a noiseless epochs?
 end
+if ~exist('sd','var')
+    sd = []; % Do we need to calculate noise on a noiseless epochs?
+end
 
 % Parameters to change manually
 noise_thr = 13E3;
 %%%%----------------------------------%%%
 freq = [120 220]; % frequency range of ripples
 dur = [15 20 200]; % Durations for FindRipples
-sd = [];
+
 %%%%----------------------------------%%%
 
 % set if removing noise
@@ -136,18 +139,23 @@ GoodData=Data(LFPf);
 clear LFP_rip
 
 %% Calculate standard deviation without noise
-if clean == 1
+if clean 
     load('behavResources.mat');
     AboveEpoch=thresholdIntervals(LFPr,noise_thr,'Direction','Above'); % Threshold on non-filtered data!!!
     NoiseEpoch=thresholdIntervals(LFPr,-noise_thr,'Direction','Below'); % Threshold on non-filtered data!!!
     CleanEpoch=or(AboveEpoch,NoiseEpoch);
-    CleanEpoch=intervalSet(Start(CleanEpoch)-3E3,End(CleanEpoch)+5E3);
+%     CleanEpoch=intervalSet(Start(CleanEpoch)-3E3,End(CleanEpoch)+5E3);
+    CleanEpoch=intervalSet(Start(CleanEpoch)-5E2,End(CleanEpoch)+1E3); % changed from 0.3/0.5s to 0.05/0.1s the 29/08/2023
     if logical(exist('TTLInfo'))
         if isfield(TTLInfo, 'StimEpoch')
-            StimEpoch = intervalSet(Start(TTLInfo.StimEpoch)-1E3, End(TTLInfo.StimEpoch)+3E3);
+            StimEpoch = intervalSet(Start(TTLInfo.StimEpoch)-1E3, End(TTLInfo.StimEpoch)+5E3);
             GoEpoch = or(CleanEpoch,StimEpoch);
         else
             GoEpoch=CleanEpoch;
+        end
+        if exist('StimEpoch2','var')
+            StimEpoch2 = intervalSet(Start(StimEpoch2)-1E3, End(StimEpoch2)+2E3);
+            GoEpoch = or(GoEpoch,StimEpoch2);
         end
     else
         GoEpoch=CleanEpoch;

@@ -134,7 +134,7 @@ save('SleepScoring_OBGamma','Sleep','SmoothGamma','-append')
 
 % Theta epoch
 disp('Theta Epochs')
-[ThetaEpoch,SmoothTheta, ~, Info_temp] = FindThetaEpoch_SleepScoring(Sleep, Epochchannel_hpc, minduration, 'foldername', foldername, 'user_confirmation', user_confirmation);
+[ThetaEpoch,SmoothTheta, ~, Info_temp] = FindThetaEpoch_SleepScoring(Sleep, channel_hpc, minduration, 'foldername', foldername, 'user_confirmation', user_confirmation);
 Info=ConCatStruct(Info,Info_temp); clear Info_temp;
 save('SleepScoring_OBGamma','ThetaEpoch','SmoothTheta','-append')
 

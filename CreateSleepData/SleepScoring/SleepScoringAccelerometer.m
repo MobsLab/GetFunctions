@@ -110,7 +110,7 @@ save('SleepScoring_Accelero','Epoch','SubNoiseEpoch','TotalNoiseEpoch','-append'
 
 % Movement Epoch
 disp('MovementAccelero')
-[ImmobilityEpoch, MovementEpoch, tsdMovement, Info_temp] = FindMovementAccelero_SleepScoring('user_confirmation', user_confirmation);
+[ImmobilityEpoch, MovementEpoch, tsdMovement, Info_temp] = FindMovementAccelero_SleepScoring(Epoch,'user_confirmation', user_confirmation);
 Info=ConCatStruct(Info,Info_temp); clear Info_temp;
 save('SleepScoring_Accelero','ImmobilityEpoch','tsdMovement', 'MovementEpoch','-append')
 
@@ -118,14 +118,14 @@ SleepEpoch = ImmobilityEpoch;
 
 % Theta epoch
 disp('Theta Epochs')
-[ThetaEpoch, SmoothTheta, ThetaRatioTSD, Info_temp] = FindThetaEpoch_SleepScoring(SleepEpoch, channel_hpc, minduration, 'foldername', foldername, 'user_confirmation', user_confirmation);
+[ThetaEpoch, SmoothTheta, ThetaRatioTSD, Info_temp] = FindThetaEpoch_SleepScoring(SleepEpoch, Epoch, channel_hpc, minduration, 'foldername', foldername, 'user_confirmation', user_confirmation);
 Info=ConCatStruct(Info,Info_temp); clear Info_temp;
 save('SleepScoring_Accelero','ThetaEpoch','SmoothTheta', 'ThetaRatioTSD', '-append')
 
 
 %% Define behavioural epochs
 disp('ScoreEpochs REM & SWS')
-[REMEpoch, SWSEpoch, Wake,REMEpochWiNoise, SWSEpochWiNoise, WakeWiNoise] = ScoreEpochs_SleepScoring(TotalNoiseEpoch, Epoch, SleepEpoch, ThetaEpoch, minduration);
+[REMEpoch, SWSEpoch, Wake,REMEpochWiNoise, SWSEpochWiNoise, WakeWiNoise] = ScoreEpochs_SleepScoring(TotalNoiseEpoch, Epoch, SleepEpoch, ThetaEpoch, minduration,SmoothTheta,Info);
 SleepWiNoise = or(REMEpochWiNoise,SWSEpochWiNoise);
 Sleep = or(REMEpoch,SWSEpoch);
 save('SleepScoring_Accelero','REMEpoch','SWSEpoch','Wake','REMEpochWiNoise', 'SWSEpochWiNoise', 'WakeWiNoise',...

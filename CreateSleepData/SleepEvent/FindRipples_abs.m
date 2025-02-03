@@ -168,17 +168,40 @@ Filsp_tmp = FilterLFP(LFP, frequency_band, 1024); %filter
 % clear stim from LFP
 if stim
     try
-        load('behavResources.mat','StimEpoch');
+        load('behavResources.mat','StimEpoch'); % supposed for eyelid, 0.1 ms before, 0.5 ms after
         st = Start(StimEpoch);
-        time = Range(Filsp_tmp);
-        TotalEpoch = intervalSet(time(1), time(end));
-        for istim=1:length(st)
-            sti(istim) = st(istim)-5000;
-            en(istim) = st(istim)+5000;
+        if isempty(st)
+            time = Range(Filsp_tmp);
+            NoStimEpoch = intervalSet(time(1), time(end));
+        else
+            time = Range(Filsp_tmp);
+            TotalEpoch = intervalSet(time(1), time(end));
+            for istim=1:length(st)
+                sti(istim) = st(istim)-1000;
+                en(istim) = st(istim)+5000;
+            end
+            stim_ti = intervalSet(sti,en);
+            NoStimEpoch = TotalEpoch - stim_ti;
         end
-        stim_ti = intervalSet(sti,en);
-        NoStimEpoch = TotalEpoch - stim_ti;
-        FiltLFP = Restrict(Filsp_tmp, NoStimEpoch);
+        
+        try % add by BM, optimized for VHC stims
+            clear st time sti en
+            load('behavResources.mat','StimEpoch2'); % supposed for VHC, 0.05 ms before, 0.2 ms after
+            st = Start(StimEpoch2);
+            time = Range(Filsp_tmp);
+            
+            TotalEpoch = intervalSet(time(1), time(end));
+            for istim=1:length(st)
+                sti(istim) = st(istim)-500; % changed from 0.1s to 0.05s the 25/08/2023
+                en(istim) = st(istim)+1000; % changed from 0.2s to 0.1s the 29/08/2023
+            end
+            stim_ti = intervalSet(sti,en);
+            NoStimEpoch2 = TotalEpoch - stim_ti;
+            FiltLFP_pre = Restrict(Filsp_tmp, NoStimEpoch2);
+            FiltLFP = Restrict(FiltLFP_pre, NoStimEpoch);
+        catch
+            FiltLFP = Restrict(Filsp_tmp, NoStimEpoch);
+        end
     catch
         warning('There is no StimEpoch for this session')
         FiltLFP=Filsp_tmp;
@@ -201,8 +224,8 @@ else
 end
 
 %signal taken over the whole record for detection
-signal_squared = abs(Data(FiltLFP));
-SquaredFiltLFP = tsd(Range(FiltLFP),signal_squared-meanVal);
+% signal_squared = abs(Data(FiltLFP));
+SquaredFiltLFP = tsd(Range(FiltLFP_EpochRestrict),signal_squared-meanVal);
 
 % Detect using low threshold
 PotentialRipples = thresholdIntervals(SquaredFiltLFP, threshold(1)*stdVal);

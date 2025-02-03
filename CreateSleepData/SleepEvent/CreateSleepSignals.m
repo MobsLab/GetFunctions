@@ -225,7 +225,7 @@ end
 % structure per lfp/probe site
 structure = 'PFCx';
 
-%down states
+% down states
 if down
     down_structures = cell(0);
     if exist(fullfile(foldername,'SpikeData.mat'), 'file')==2

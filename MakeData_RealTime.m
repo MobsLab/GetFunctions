@@ -26,7 +26,9 @@ NewtsdZT_Times = [];
 load([foldername 'behavResources'],'tpsCatEvt','nameCatEvt')
 load([foldername 'TimeRec.mat'],'TimeEndRec','TimeBeginRec','TimeEndRec_Allfiles','TimeBeginRec_Allfiles')
 load('LFPData/InfoLFP.mat')
-load(['LFPData/LFP' num2str(InfoLFP.channel(1))])
+% find first non null channel
+FirstNonNulChannel = find(~strcmp(InfoLFP.structure,'Nthg'),1,'first');
+load(['LFPData/LFP' num2str(InfoLFP.channel(FirstNonNulChannel))])
 
 
 for file = 1:size(TimeBeginRec_Allfiles,1)
